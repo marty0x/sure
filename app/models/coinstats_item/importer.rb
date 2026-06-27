@@ -32,6 +32,7 @@ class CoinstatsItem::Importer
                                     .joins(:account_provider)
                                     .includes(:account)
                                     .order("coinstats_accounts.id ASC")
+                                    .to_a
 
     if linked_accounts.empty?
       Rails.logger.info "CoinstatsItem::Importer - No linked accounts to sync for item #{coinstats_item.id}"
@@ -141,6 +142,7 @@ class CoinstatsItem::Importer
 
         { address: address, blockchain: blockchain }
       end.uniq { |w| [ w[:address].downcase, w[:blockchain].downcase ] }
+      wallets = wallets.sort_by { |w| [ w[:blockchain].downcase, w[:address].downcase ] }
 
       return [] if wallets.empty?
 
@@ -188,6 +190,7 @@ class CoinstatsItem::Importer
 
         { address: address, blockchain: blockchain }
       end.uniq { |w| [ w[:address].downcase, w[:blockchain].downcase ] }
+      wallets = wallets.sort_by { |w| [ w[:blockchain].downcase, w[:address].downcase ] }
 
       return [] if wallets.empty?
 
