@@ -31,6 +31,7 @@ class CoinstatsItem::Importer
     linked_accounts = coinstats_item.coinstats_accounts
                                     .joins(:account_provider)
                                     .includes(:account)
+                                    .order("coinstats_accounts.id ASC")
 
     if linked_accounts.empty?
       Rails.logger.info "CoinstatsItem::Importer - No linked accounts to sync for item #{coinstats_item.id}"
