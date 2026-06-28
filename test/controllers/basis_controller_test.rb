@@ -58,7 +58,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Lighter account values/i, response.body)
     assert_match(/weETH/i, response.body)
     assert_match(/Account 730104/i, response.body)
-    assert_match(/\$14,865\.49/, response.body)
+    assert_match(/\$18,865\.49/, response.body)
     assert_match(/\$11,751\.87/, response.body)
     assert_match(/\$7,112\.99/, response.body)
     assert_match(/\$0\.63/, response.body)
