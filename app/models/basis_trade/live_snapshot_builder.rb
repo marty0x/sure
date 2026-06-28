@@ -29,7 +29,8 @@ class BasisTrade::LiveSnapshotBuilder
 
     if @family.basis_lighter_address.present?
       lighter_summary = Provider::Lighter.new.total_account_value_for_l1_address(@family.basis_lighter_address)
-      snapshot[:short_leg_cents] = dollars_to_cents(lighter_summary[:total_account_value])
+      snapshot[:short_leg_cents] = dollars_to_cents(lighter_summary[:total_position_notional])
+      snapshot[:funding_accrued_cents] = dollars_to_cents(lighter_summary[:funding_accrued])
       snapshot[:metadata][:lighter] = lighter_summary
     end
 

@@ -25,11 +25,25 @@ class Provider::Lighter
       next if index.blank?
 
       details = account_by_index(index)
+      positions = Array(details["positions"])
+
       {
         index: index.to_s,
         collateral: BigDecimal(details["collateral"].to_s),
         total_asset_value: BigDecimal(details["total_asset_value"].to_s),
-        unrealized_pnl: Array(details["positions"]).sum { |position| BigDecimal(position["unrealized_pnl"].to_s) }
+        unrealized_pnl: positions.sum { |position| BigDecimal(position["unrealized_pnl"].to_s) },
+        total_position_notional: positions.sum { |position| BigDecimal(position["position_value"].to_s).abs },
+        funding_accrued: positions.sum { |position| BigDecimal(position["total_funding_paid_out"].to_s) },
+        positions: positions.map do |position|
+          {
+            symbol: position["symbol"].to_s,
+            sign: position["sign"].to_i,
+            size: BigDecimal(position["position"].to_s),
+            notional_value: BigDecimal(position["position_value"].to_s),
+            unrealized_pnl: BigDecimal(position["unrealized_pnl"].to_s),
+            funding_accrued: BigDecimal(position["total_funding_paid_out"].to_s)
+          }
+        end
       }
     end
 
@@ -37,6 +51,8 @@ class Provider::Lighter
       total_account_value: detailed_accounts.sum { |account| account[:total_asset_value] },
       total_collateral: detailed_accounts.sum { |account| account[:collateral] },
       total_unrealized_pnl: detailed_accounts.sum { |account| account[:unrealized_pnl] },
+      total_position_notional: detailed_accounts.sum { |account| account[:total_position_notional] },
+      funding_accrued: detailed_accounts.sum { |account| account[:funding_accrued] },
       accounts: detailed_accounts
     }
   end

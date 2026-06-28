@@ -40,12 +40,14 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     )
 
     BasisTrade::OptimismWalletValuator.any_instance.stubs(:value).returns(
-      total_value: BigDecimal("1500.25"),
-      tokens: [ { symbol: "weETH", balance: BigDecimal("0.75") } ]
+      total_value: BigDecimal("11751.87"),
+      tokens: [ { symbol: "weETH", balance: BigDecimal("4.123441") } ]
     )
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
-      total_account_value: BigDecimal("980.10"),
-      accounts: [ { index: "17", total_asset_value: BigDecimal("980.10") } ]
+      total_account_value: BigDecimal("2865.90"),
+      total_position_notional: BigDecimal("7112.99"),
+      funding_accrued: BigDecimal("0.63"),
+      accounts: [ { index: "730104", total_asset_value: BigDecimal("2865.90") } ]
     )
 
     get basis_path
@@ -55,7 +57,11 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Spot wallet balances/i, response.body)
     assert_match(/Lighter account values/i, response.body)
     assert_match(/weETH/i, response.body)
-    assert_match(/Account 17/i, response.body)
+    assert_match(/Account 730104/i, response.body)
+    assert_match(/\$14,865\.49/, response.body)
+    assert_match(/\$11,751\.87/, response.body)
+    assert_match(/\$7,112\.99/, response.body)
+    assert_match(/\$0\.63/, response.body)
   end
 
   test "renders basis configuration guidance when direct sources are not configured" do

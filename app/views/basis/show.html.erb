@@ -18,14 +18,16 @@
 
       <div class="grid grid-cols-2 @3xl:grid-cols-5 gap-3">
         <% live_total_cents = @basis_live_snapshot[:spot_leg_cents] + @basis_live_snapshot[:short_leg_cents] + @basis_live_snapshot[:funding_accrued_cents] + @basis_live_snapshot[:rewards_accrued_cents] %>
+        <% live_total_amount = live_total_cents / 100.0 %>
         <div class="bg-container-inset rounded-xl px-5 py-5 col-span-2 @3xl:col-span-1">
           <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.selected_total") %></p>
-          <p class="text-3xl font-medium text-primary tabular-nums mt-2 privacy-sensitive"><%= format_money(Money.new(live_total_cents, @basis_live_snapshot[:currency])) %></p>
+          <p class="text-3xl font-medium text-primary tabular-nums mt-2 privacy-sensitive"><%= format_money(Money.new(live_total_amount, @basis_live_snapshot[:currency])) %></p>
         </div>
         <% { spot: :spot_leg_cents, short: :short_leg_cents, funding: :funding_accrued_cents, rewards: :rewards_accrued_cents }.each do |label, key| %>
+          <% live_leg_amount = @basis_live_snapshot[key] / 100.0 %>
           <div class="bg-container-inset rounded-xl px-5 py-5">
             <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.#{label}") %></p>
-            <p class="text-xl font-medium text-primary tabular-nums mt-2 privacy-sensitive"><%= format_money(Money.new(@basis_live_snapshot[key], @basis_live_snapshot[:currency])) %></p>
+            <p class="text-xl font-medium text-primary tabular-nums mt-2 privacy-sensitive"><%= format_money(Money.new(live_leg_amount, @basis_live_snapshot[:currency])) %></p>
           </div>
         <% end %>
       </div>
