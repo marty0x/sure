@@ -158,7 +158,7 @@ en:
         basis_sources_subtitle: Configure the onchain wallet and Lighter address Sure should query directly for your basis monitor.
         basis_long_address_label: Ether.fi deposit address on Optimism
         basis_long_address_placeholder: "0x..."
-        basis_long_address_hint: Native ETH is included automatically. Add any ERC-20 contracts you want counted below.
+        basis_long_address_hint: Sure will value the configured ERC-20 spot-leg token balances held at this Optimism address.
         basis_long_tokens_label: Optimism ERC-20 token contracts
         basis_long_tokens_placeholder: |
           0x...

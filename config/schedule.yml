@@ -54,3 +54,9 @@ sweep_expired_goal_pledges:
   class: "SweepExpiredGoalPledgesJob"
   queue: "scheduled"
   description: "Marks goal pledges that passed their 7-day window as expired"
+
+record_basis_snapshots:
+  cron: "0 */12 * * *" # twice daily at 00:00 and 12:00 UTC
+  class: "RecordBasisSnapshotsJob"
+  queue: "scheduled"
+  description: "Records basis trade snapshots for configured families twice per day"

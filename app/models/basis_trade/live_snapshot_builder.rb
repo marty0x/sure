@@ -25,6 +25,7 @@ class BasisTrade::LiveSnapshotBuilder
       )
       snapshot[:spot_leg_cents] = dollars_to_cents(spot_leg[:total_value])
       snapshot[:metadata][:spot_tokens] = spot_leg[:tokens]
+      snapshot[:rewards_accrued_cents] = rewards_accrued_cents_for(snapshot[:spot_leg_cents])
     end
 
     if @family.basis_lighter_address.present?
@@ -43,5 +44,16 @@ class BasisTrade::LiveSnapshotBuilder
 
     def dollars_to_cents(value)
       (BigDecimal(value.to_s) * 100).round(0).to_i
+    end
+
+    def rewards_accrued_cents_for(current_spot_leg_cents)
+      initial_snapshot = @family.basis_trade_snapshots.chronological.first
+      return 0 unless initial_snapshot
+
+      current_spot_leg_cents - snapshot_units_to_cents(initial_snapshot.spot_leg_cents)
+    end
+
+    def snapshot_units_to_cents(value)
+      (BigDecimal(value.to_s) / (BasisTradeSeriesBuilder::CENTS_PER_UNIT / 100.0)).round(0).to_i
     end
 end

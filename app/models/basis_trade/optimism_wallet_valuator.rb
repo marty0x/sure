@@ -4,17 +4,13 @@ require "net/http"
 class BasisTrade::OptimismWalletValuator
   RPC_URL = "https://mainnet.optimism.io".freeze
   PRICE_API_URL = "https://coins.llama.fi/prices/current".freeze
-  NATIVE_WETH_ADDRESS = "0x4200000000000000000000000000000000000006".freeze
   ERC20_BALANCE_OF = "70a08231".freeze
   ERC20_DECIMALS = "313ce567".freeze
   ERC20_SYMBOL = "95d89b41".freeze
 
   def value(address:, token_addresses: [])
     normalized_tokens = token_addresses.map(&:downcase).uniq
-
-    native_balance = balance_for_native(address)
-    erc20_rows = normalized_tokens.map { |token| token_row(address, token) }
-    priced_rows = price_rows([ native_token_row(native_balance), *erc20_rows ])
+    priced_rows = price_rows(normalized_tokens.map { |token| token_row(address, token) })
 
     {
       total_value: priced_rows.sum { |row| row[:value_usd] },
@@ -23,17 +19,6 @@ class BasisTrade::OptimismWalletValuator
   end
 
   private
-
-    def native_token_row(balance)
-      {
-        address: NATIVE_WETH_ADDRESS,
-        symbol: "ETH",
-        decimals: 18,
-        balance: balance,
-        token_type: :native
-      }
-    end
-
     def token_row(owner_address, token_address)
       {
         address: token_address,
@@ -45,6 +30,8 @@ class BasisTrade::OptimismWalletValuator
     end
 
     def price_rows(rows)
+      return [] if rows.empty?
+
       prices = fetch_prices(rows.map { |row| "optimism:#{row[:address]}" })
 
       rows.map do |row|
@@ -61,11 +48,6 @@ class BasisTrade::OptimismWalletValuator
 
       parsed = JSON.parse(response.body)
       parsed.fetch("coins", {}).transform_values { |value| value["price"] }
-    end
-
-    def balance_for_native(address)
-      wei_hex = rpc_call("eth_getBalance", [ address, "latest" ])
-      decode_decimal(wei_hex, 18)
     end
 
     def token_balance(owner_address, token_address)

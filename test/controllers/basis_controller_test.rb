@@ -40,14 +40,15 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     )
 
     BasisTrade::OptimismWalletValuator.any_instance.stubs(:value).returns(
-      total_value: BigDecimal("11751.87"),
-      tokens: [ { symbol: "weETH", balance: BigDecimal("4.123441") } ]
+      total_value: BigDecimal("7095.44"),
+      tokens: [ { symbol: "weETH", balance: BigDecimal("2.4901") } ]
     )
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
-      total_account_value: BigDecimal("2865.90"),
+      total_account_value: BigDecimal("2850.99"),
+      total_collateral: BigDecimal("2850.99"),
       total_position_notional: BigDecimal("7112.99"),
       funding_accrued: BigDecimal("0.63"),
-      accounts: [ { index: "730104", total_asset_value: BigDecimal("2865.90") } ]
+      accounts: [ { index: "730104", total_asset_value: BigDecimal("2850.99") } ]
     )
 
     get basis_path
@@ -58,10 +59,13 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Lighter account values/i, response.body)
     assert_match(/weETH/i, response.body)
     assert_match(/Account 730104/i, response.body)
-    assert_match(/\$18,865\.49/, response.body)
-    assert_match(/\$11,751\.87/, response.body)
+    assert_match(/\$9,946\.43/, response.body)
+    assert_match(/\$7,095\.44/, response.body)
+    assert_match(/\$2,850\.99 USD/, response.body)
     assert_match(/\$7,112\.99/, response.body)
     assert_match(/\$0\.63/, response.body)
+    assert_includes response.body, "text-success"
+    assert_includes response.body, "text-destructive"
   end
 
   test "renders basis configuration guidance when direct sources are not configured" do
