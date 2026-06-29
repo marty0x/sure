@@ -64,7 +64,7 @@
               <% lighter_accounts.each do |account| %>
                 <div class="flex items-center justify-between gap-3">
                   <span><%= t(".live.lighter_account", index: account[:index]) %></span>
-                  <span class="tabular-nums text-primary">$<%= number_with_precision(account[:total_asset_value], precision: 2) %> USD</span>
+                  <span class="tabular-nums text-primary"><%= format_money(Money.new(account[:total_asset_value], @basis_live_snapshot[:currency])) %> <%= @basis_live_snapshot[:currency] %></span>
                 </div>
               <% end %>
             </div>
