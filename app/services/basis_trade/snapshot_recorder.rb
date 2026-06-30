@@ -16,7 +16,8 @@ class BasisTrade::SnapshotRecorder
       short_leg_cents: -cents_to_snapshot_units(result.snapshot[:short_leg_cents].abs),
       funding_accrued_cents: cents_to_snapshot_units(result.snapshot[:funding_accrued_cents]),
       rewards_accrued_cents: cents_to_snapshot_units(result.snapshot[:rewards_accrued_cents]),
-      currency: result.snapshot[:currency]
+      currency: result.snapshot[:currency],
+      metadata: normalized_metadata(result.snapshot[:metadata])
     )
     snapshot.save!
     snapshot
@@ -26,5 +27,18 @@ class BasisTrade::SnapshotRecorder
 
     def cents_to_snapshot_units(value)
       (BigDecimal(value.to_s) * (BasisTradeSeriesBuilder::CENTS_PER_UNIT / 100.0)).round(0).to_i
+    end
+
+    def normalized_metadata(value)
+      case value
+      when Hash
+        value.deep_stringify_keys.transform_values { |nested| normalized_metadata(nested) }
+      when Array
+        value.map { |nested| normalized_metadata(nested) }
+      when BigDecimal
+        value.to_s("F")
+      else
+        value
+      end
     end
 end

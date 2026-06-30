@@ -40,8 +40,14 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     )
 
     BasisTrade::OptimismWalletValuator.any_instance.stubs(:value).returns(
-      total_value: BigDecimal("7095.44"),
-      tokens: [ { symbol: "weETH", balance: BigDecimal("2.4901") } ]
+      {
+        total_value: BigDecimal("7095.44"),
+        tokens: [ { symbol: "weETH", balance: BigDecimal("2.4901"), price_usd: BigDecimal("2850.93") } ]
+      },
+      {
+        total_value: BigDecimal("84.92"),
+        tokens: [ { symbol: "USDC", balance: BigDecimal("84.92"), price_usd: BigDecimal("1.0") } ]
+      }
     )
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
       total_account_value: BigDecimal("2850.99"),
@@ -64,6 +70,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/\$2,850\.99 USD/, response.body)
     assert_match(/\$7,112\.99/, response.body)
     assert_match(/\$0\.63/, response.body)
+    assert_match(/\$0\.00/, response.body)
     assert_includes response.body, "text-success"
     assert_includes response.body, "text-destructive"
   end

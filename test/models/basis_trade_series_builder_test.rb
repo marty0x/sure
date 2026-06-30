@@ -65,6 +65,54 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
     assert_equal({ spot: 1550.0, short: -30.0, funding: 15.0, rewards: 5.0, combined: 1540.0 }, totals)
   end
 
+  test "derives rewards from ETH quantity growth at current USD plus snapshot USDC" do
+    BasisTradeSnapshot.create!(
+      family: @family,
+      recorded_at: Time.zone.parse("2026-06-20 12:00:00"),
+      spot_leg_cents: 1_500_000,
+      short_leg_cents: -25_000,
+      funding_accrued_cents: 12_000,
+      rewards_accrued_cents: 0,
+      currency: "USD",
+      metadata: {
+        rewards_basis: {
+          eth_balance: "2.0",
+          eth_price_usd: "3000.0",
+          usdc_balance: "0"
+        }
+      }
+    )
+    BasisTradeSnapshot.create!(
+      family: @family,
+      recorded_at: Time.zone.parse("2026-06-21 12:00:00"),
+      spot_leg_cents: 1_550_000,
+      short_leg_cents: -30_000,
+      funding_accrued_cents: 15_000,
+      rewards_accrued_cents: 0,
+      currency: "USD",
+      metadata: {
+        rewards_basis: {
+          eth_balance: "2.03",
+          eth_price_usd: "3100.0",
+          usdc_balance: "5.0"
+        }
+      }
+    )
+
+    payload = BasisTradeSeriesBuilder.new(
+      family: @family,
+      current_reward_reference: {
+        eth_balance: "2.04",
+        eth_price_usd: "3200.0",
+        usdc_balance: "7.5"
+      }
+    ).payload
+
+    assert_equal 0.0, payload[:points].first[:rewards]
+    assert_equal 101.0, payload[:points].last[:rewards]
+    assert_equal({ spot: 1550.0, short: -30.0, funding: 15.0, rewards: 135.5, combined: 1670.5 }, payload[:totals])
+  end
+
   test "filters payload points by date range" do
     BasisTradeSnapshot.create!(
       family: @family,
