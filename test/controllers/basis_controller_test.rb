@@ -38,6 +38,21 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
       basis_long_token_addresses: "0x2222222222222222222222222222222222222222",
       basis_lighter_address: "0x3333333333333333333333333333333333333333"
     )
+    @user.family.basis_trade_snapshots.create!(
+      recorded_at: Time.zone.parse("2026-06-20 00:00:00"),
+      spot_leg_cents: 7_000_000,
+      short_leg_cents: -7_000_000,
+      funding_accrued_cents: 0,
+      rewards_accrued_cents: 0,
+      currency: "USD",
+      metadata: {
+        rewards_basis: {
+          eth_balance: "2.4900",
+          eth_price_usd: "2800.0",
+          usdc_balance: "0"
+        }
+      }
+    )
 
     BasisTrade::OptimismWalletValuator.any_instance.stubs(:value).returns(
       {
@@ -70,7 +85,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/\$2,850\.99 USD/, response.body)
     assert_match(/\$7,112\.99/, response.body)
     assert_match(/\$0\.63/, response.body)
-    assert_match(/\$0\.00/, response.body)
+    assert_match(/\$85\.21/, response.body)
     assert_includes response.body, "text-success"
     assert_includes response.body, "text-destructive"
   end

@@ -11,7 +11,7 @@ class BasisTradeSeriesBuilder
     @family = family
     @start_date = start_date
     @end_date = end_date
-    @current_reward_reference = normalize_reward_reference(current_reward_reference)
+    @current_reward_reference = BasisTrade::RewardsValueCalculator.normalize_reference(current_reward_reference)
   end
 
   def payload
@@ -51,10 +51,10 @@ class BasisTradeSeriesBuilder
     end
 
     def totals
-      latest = snapshots.last
-      return { spot: 0.0, short: 0.0, funding: 0.0, rewards: 0.0, combined: 0.0 } if latest.nil?
+      baseline = all_snapshots.first
+      return { spot: 0.0, short: 0.0, funding: 0.0, rewards: 0.0, combined: 0.0 } if baseline.nil?
 
-      leg_values(latest, reward_reference: current_reward_reference.presence || reward_reference_for(latest))
+      stored_leg_values(baseline)
     end
 
     def points
@@ -73,6 +73,44 @@ class BasisTradeSeriesBuilder
       funding = to_decimal(snapshot.funding_accrued_cents)
       rewards = rewards_value(snapshot, reward_reference: reward_reference)
 
+      build_leg_values(spot: spot, short: short, funding: funding, rewards: rewards)
+    end
+
+    def stored_leg_values(snapshot)
+      build_leg_values(
+        spot: to_decimal(snapshot.spot_leg_cents),
+        short: to_decimal(snapshot.short_leg_cents),
+        funding: to_decimal(snapshot.funding_accrued_cents),
+        rewards: to_decimal(snapshot.rewards_accrued_cents)
+      )
+    end
+
+    def rewards_value(snapshot, reward_reference: nil)
+      reference = reward_reference.presence || reward_reference_for(snapshot)
+
+      BasisTrade::RewardsValueCalculator.new(
+        starting_reference: reward_reference_for(all_snapshots.first),
+        current_reference: {
+          eth_balance: reference&.dig(:eth_balance),
+          eth_price_usd: current_reward_reference&.dig(:eth_price_usd).presence || reference&.dig(:eth_price_usd),
+          usdc_balance: reference&.dig(:usdc_balance)
+        },
+        fallback_value: to_decimal(snapshot.rewards_accrued_cents)
+      ).value
+    end
+
+    def reward_reference_for(snapshot)
+      BasisTrade::RewardsValueCalculator.normalize_reference(
+        snapshot&.metadata&.dig("rewards_basis") || snapshot&.metadata&.dig(:rewards_basis)
+      )
+    end
+
+    def build_leg_values(spot:, short:, funding:, rewards:)
+      spot = spot.to_f.round(2)
+      short = short.to_f.round(2)
+      funding = funding.to_f.round(2)
+      rewards = rewards.to_f.round(2)
+
       {
         spot: spot,
         short: short,
@@ -80,41 +118,6 @@ class BasisTradeSeriesBuilder
         rewards: rewards,
         combined: (spot + short + funding + rewards).round(2)
       }
-    end
-
-    def rewards_value(snapshot, reward_reference: nil)
-      starting_eth_balance = reward_reference_for(all_snapshots.first)&.dig(:eth_balance)
-      return to_decimal(snapshot.rewards_accrued_cents) if starting_eth_balance.nil?
-
-      reference = reward_reference.presence || reward_reference_for(snapshot)
-      return to_decimal(snapshot.rewards_accrued_cents) if reference.blank?
-
-      eth_balance = reference[:eth_balance]
-      eth_price_usd = current_reward_reference&.dig(:eth_price_usd).presence || reference[:eth_price_usd]
-      usdc_balance = reference[:usdc_balance]
-      return to_decimal(snapshot.rewards_accrued_cents) if eth_balance.nil? || eth_price_usd.nil? || usdc_balance.nil?
-
-      (((eth_balance - starting_eth_balance) * eth_price_usd) + usdc_balance).round(2)
-    end
-
-    def reward_reference_for(snapshot)
-      normalize_reward_reference(snapshot.metadata&.dig("rewards_basis") || snapshot.metadata&.dig(:rewards_basis))
-    end
-
-    def normalize_reward_reference(value)
-      return if value.blank?
-
-      {
-        eth_balance: decimal_or_nil(value["eth_balance"] || value[:eth_balance]),
-        eth_price_usd: decimal_or_nil(value["eth_price_usd"] || value[:eth_price_usd]),
-        usdc_balance: decimal_or_nil(value["usdc_balance"] || value[:usdc_balance])
-      }
-    end
-
-    def decimal_or_nil(value)
-      return if value.nil? || value == ""
-
-      BigDecimal(value.to_s)
     end
 
     def to_decimal(cents)

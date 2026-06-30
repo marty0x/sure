@@ -43,7 +43,7 @@ class BasisTrade::LiveSnapshotBuilder
         spot_tokens: spot_leg[:tokens],
         reward_tokens: reward_usdc[:tokens]
       )
-      snapshot[:rewards_accrued_cents] = 0
+      snapshot[:rewards_accrued_cents] = dollars_to_cents(current_rewards_value(snapshot[:metadata][:rewards_basis]))
     end
 
     if @family.basis_lighter_address.present?
@@ -78,5 +78,22 @@ class BasisTrade::LiveSnapshotBuilder
         eth_price_usd: BigDecimal(eth_token&.dig(:price_usd).to_s.presence || "0"),
         usdc_balance: BigDecimal(usdc_token&.dig(:balance).to_s.presence || "0")
       }
+    end
+
+    def current_rewards_value(current_reference)
+      BasisTrade::RewardsValueCalculator.new(
+        starting_reference: initial_rewards_reference,
+        current_reference: current_reference,
+        fallback_value: 0.0
+      ).value
+    end
+
+    def initial_rewards_reference
+      @initial_rewards_reference ||= begin
+        snapshot = @family.basis_trade_snapshots.chronological.first
+        BasisTrade::RewardsValueCalculator.normalize_reference(
+          snapshot&.metadata&.dig("rewards_basis") || snapshot&.metadata&.dig(:rewards_basis)
+        )
+      end
     end
 end

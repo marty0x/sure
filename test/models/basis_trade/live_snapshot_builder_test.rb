@@ -5,7 +5,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     @family = families(:dylan_family)
   end
 
-  test "uses spot wallet value, lighter notional for short leg, keeps live rewards at zero, and captures reward basis metadata" do
+  test "uses spot wallet value, lighter notional for short leg, keeps live rewards at zero without an initial basis snapshot, and captures reward basis metadata" do
     @family.update!(
       basis_long_address: "0x1111111111111111111111111111111111111111",
       basis_long_token_addresses: "0x2222222222222222222222222222222222222222",
@@ -45,7 +45,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     assert_equal BigDecimal("84.92"), result.snapshot.dig(:metadata, :rewards_basis, :usdc_balance)
   end
 
-  test "keeps live rewards at zero even when an initial snapshot exists" do
+  test "derives live rewards from the initial basis snapshot when one exists" do
     @family.update!(
       basis_long_address: "0x1111111111111111111111111111111111111111",
       basis_long_token_addresses: "0x2222222222222222222222222222222222222222",
@@ -58,7 +58,14 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
       short_leg_cents: -7_000_000,
       funding_accrued_cents: 0,
       rewards_accrued_cents: 0,
-      currency: "USD"
+      currency: "USD",
+      metadata: {
+        rewards_basis: {
+          eth_balance: "2.4900",
+          eth_price_usd: "2800.0",
+          usdc_balance: "0"
+        }
+      }
     )
 
     BasisTrade::OptimismWalletValuator.any_instance.stubs(:value).returns(
@@ -81,7 +88,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
 
     result = described_class.new(family: @family).call
 
-    assert_equal 0, result.snapshot[:rewards_accrued_cents]
+    assert_equal 8_521, result.snapshot[:rewards_accrued_cents]
   end
 
   private

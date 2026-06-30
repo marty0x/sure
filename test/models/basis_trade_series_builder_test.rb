@@ -40,15 +40,22 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
     assert_equal 1540.0, payload[:points].last[:combined]
   end
 
-  test "uses the latest snapshot for totals" do
+  test "uses the initial snapshot for totals so the bottom strip shows original basis values" do
     BasisTradeSnapshot.create!(
       family: @family,
       recorded_at: Time.zone.parse("2026-06-20 12:00:00"),
       spot_leg_cents: 1_500_000,
       short_leg_cents: -25_000,
       funding_accrued_cents: 12_000,
-      rewards_accrued_cents: 4_000,
-      currency: "USD"
+      rewards_accrued_cents: 0,
+      currency: "USD",
+      metadata: {
+        rewards_basis: {
+          eth_balance: "2.0",
+          eth_price_usd: "3000.0",
+          usdc_balance: "10.0"
+        }
+      }
     )
     BasisTradeSnapshot.create!(
       family: @family,
@@ -56,13 +63,27 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
       spot_leg_cents: 1_550_000,
       short_leg_cents: -30_000,
       funding_accrued_cents: 15_000,
-      rewards_accrued_cents: 5_000,
-      currency: "USD"
+      rewards_accrued_cents: 0,
+      currency: "USD",
+      metadata: {
+        rewards_basis: {
+          eth_balance: "2.03",
+          eth_price_usd: "3100.0",
+          usdc_balance: "5.0"
+        }
+      }
     )
 
-    totals = BasisTradeSeriesBuilder.new(family: @family).payload[:totals]
+    totals = BasisTradeSeriesBuilder.new(
+      family: @family,
+      current_reward_reference: {
+        eth_balance: "2.04",
+        eth_price_usd: "3200.0",
+        usdc_balance: "7.5"
+      }
+    ).payload[:totals]
 
-    assert_equal({ spot: 1550.0, short: -30.0, funding: 15.0, rewards: 5.0, combined: 1540.0 }, totals)
+    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, combined: 1487.0 }, totals)
   end
 
   test "derives rewards from ETH quantity growth at current USD plus snapshot USDC" do
@@ -110,7 +131,9 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
 
     assert_equal 0.0, payload[:points].first[:rewards]
     assert_equal 101.0, payload[:points].last[:rewards]
-    assert_equal({ spot: 1550.0, short: -30.0, funding: 15.0, rewards: 135.5, combined: 1670.5 }, payload[:totals])
+    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, combined: 1487.0 }, payload[:totals])
+    assert_instance_of Float, payload[:points].last[:rewards]
+    assert_instance_of Float, payload[:points].last[:combined]
   end
 
   test "filters payload points by date range" do
