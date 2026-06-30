@@ -870,7 +870,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_230639) do
     t.decimal "target_amount", precision: 19, scale: 4, null: false
     t.date "target_date"
     t.datetime "updated_at", null: false
-    t.string "icon"
     t.string "progress_basis", default: "balance", null: false
     t.index ["family_id", "state"], name: "index_goals_on_family_id_and_state"
     t.index ["family_id"], name: "index_goals_on_family_id"
@@ -1784,7 +1783,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_230639) do
     t.string "oauth_token_type"
     t.string "oauth_scope"
     t.datetime "oauth_token_expires_at"
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["family_id"], name: "index_snaptrade_items_on_family_id"
     t.index ["status"], name: "index_snaptrade_items_on_status"
