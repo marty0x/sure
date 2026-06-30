@@ -1,0 +1,143 @@
+<div class="@container space-y-8 pb-6 lg:pb-12">
+  <header>
+    <div class="flex items-center gap-2">
+      <h1 class="text-2xl font-semibold text-primary"><%= t(".title") %></h1>
+      <%= render DS::Pill.new(label: t("shared.preview"), size: :md) %>
+    </div>
+    <p class="text-sm text-secondary mt-1"><%= t(".subtitle") %></p>
+  </header>
+
+  <% if @basis_live_error.present? %>
+    <%= render DS::Alert.new(message: t(".live.error", message: @basis_live_error), variant: :warning) %>
+  <% elsif @basis_live_snapshot.present? %>
+    <section class="bg-container rounded-xl shadow-border-xs px-5 py-5 space-y-4">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".live.heading") %></p>
+        <p class="text-sm text-secondary mt-1"><%= t(".live.subtitle") %></p>
+      </div>
+
+      <div class="grid grid-cols-2 @3xl:grid-cols-5 gap-3">
+        <% lighter_account_value_cents = ((@basis_live_snapshot.dig(:metadata, :lighter, :total_account_value) || 0).to_d * 100).round(0).to_i %>
+        <% live_total_cents = @basis_live_snapshot[:spot_leg_cents] + lighter_account_value_cents %>
+        <% live_total_amount = live_total_cents / 100.0 %>
+        <div class="bg-container-inset rounded-xl px-5 py-5 col-span-2 @3xl:col-span-1">
+          <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.selected_total") %></p>
+          <p class="text-3xl font-medium text-primary tabular-nums mt-2 privacy-sensitive"><%= format_money(Money.new(live_total_amount, @basis_live_snapshot[:currency])) %></p>
+        </div>
+        <% { spot: :spot_leg_cents, short: :short_leg_cents, funding: :funding_accrued_cents, rewards: :rewards_accrued_cents }.each do |label, key| %>
+          <% live_leg_amount = @basis_live_snapshot[key] / 100.0 %>
+          <% live_leg_text_class = case label
+             when :spot then "text-success"
+             when :short then "text-destructive"
+             else "text-primary"
+             end %>
+          <div class="bg-container-inset rounded-xl px-5 py-5">
+            <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.#{label}") %></p>
+            <p class="text-xl font-medium <%= live_leg_text_class %> tabular-nums mt-2 privacy-sensitive"><%= format_money(Money.new(live_leg_amount, @basis_live_snapshot[:currency])) %></p>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <% spot_tokens = @basis_live_snapshot.dig(:metadata, :spot_tokens).to_a.select { |token| token[:balance].positive? } %>
+        <div class="rounded-xl border border-secondary p-4">
+          <p class="text-sm font-medium text-primary"><%= t(".live.spot_breakdown_title") %></p>
+          <% if spot_tokens.any? %>
+            <div class="mt-3 space-y-2 text-sm text-secondary">
+              <% spot_tokens.each do |token| %>
+                <div class="flex items-center justify-between gap-3">
+                  <span><%= token[:symbol] %></span>
+                  <span class="tabular-nums text-primary"><%= number_with_precision(token[:balance], precision: 6, strip_insignificant_zeros: true) %></span>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="mt-3 text-sm text-secondary"><%= t(".live.spot_breakdown_empty") %></p>
+          <% end %>
+        </div>
+
+        <% lighter_accounts = @basis_live_snapshot.dig(:metadata, :lighter, :accounts).to_a %>
+        <div class="rounded-xl border border-secondary p-4">
+          <p class="text-sm font-medium text-primary"><%= t(".live.lighter_breakdown_title") %></p>
+          <% if lighter_accounts.any? %>
+            <div class="mt-3 space-y-2 text-sm text-secondary">
+              <% lighter_accounts.each do |account| %>
+                <div class="flex items-center justify-between gap-3">
+                  <span><%= t(".live.lighter_account", index: account[:index]) %></span>
+                  <span class="tabular-nums text-primary"><%= format_money(Money.new(account[:total_asset_value], @basis_live_snapshot[:currency])) %> <%= @basis_live_snapshot[:currency] %></span>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="mt-3 text-sm text-secondary"><%= t(".live.lighter_breakdown_empty") %></p>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% elsif !@basis_sources_configured %>
+    <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
+      <p class="text-sm text-secondary"><%= t(".live.not_configured_html", link: link_to(t(".live.preferences_link"), settings_preferences_path, class: "link")) %></p>
+    </section>
+  <% end %>
+
+  <% unless @has_snapshots %>
+    <div class="bg-container rounded-xl shadow-border-xs py-16 px-6 text-center">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-surface-inset mb-4">
+        <%= icon("scale", size: "lg") %>
+      </div>
+      <h2 class="text-lg font-medium text-primary"><%= t(".empty.title") %></h2>
+      <p class="text-sm text-secondary mt-1 max-w-md mx-auto"><%= t(".empty.body") %></p>
+    </div>
+  <% else %>
+    <div
+      data-controller="basis-chart"
+      data-basis-chart-payload-value="<%= @basis_chart_payload.to_json %>"
+      data-basis-chart-labels-value="<%= { spot: t(".tooltip.spot"), short: t(".tooltip.short"), funding: t(".tooltip.funding"), rewards: t(".tooltip.rewards"), combined: t(".tooltip.combined") }.to_json %>"
+      data-basis-chart-currency-value="<%= @basis_chart_payload[:currency] %>"
+      data-basis-chart-locale-value="<%= I18n.locale %>"
+      class="space-y-6">
+
+      <%# KPI strip. Selected total updates live as legs are toggled. %>
+      <section class="grid grid-cols-2 @3xl:grid-cols-5 gap-3">
+        <div class="bg-container rounded-xl shadow-border-xs px-5 py-5 col-span-2 @3xl:col-span-1">
+          <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.selected_total") %></p>
+          <p class="text-3xl font-medium text-primary tabular-nums mt-2 privacy-sensitive" data-basis-chart-target="selectedTotal"></p>
+        </div>
+        <% %i[spot short funding rewards].each do |leg| %>
+          <div class="bg-container rounded-xl shadow-border-xs px-5 py-5">
+            <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.#{leg}") %></p>
+            <p class="text-xl font-medium text-primary tabular-nums mt-2 privacy-sensitive" data-basis-chart-target="legTotal" data-leg="<%= leg %>"></p>
+          </div>
+        <% end %>
+      </section>
+
+      <%# Leg toggles. All enabled by default. %>
+      <section class="bg-container rounded-xl shadow-border-xs px-5 py-4">
+        <p class="text-[11px] font-medium uppercase tracking-wide text-secondary mb-3"><%= t(".toggles.heading") %></p>
+        <div class="flex flex-wrap gap-x-8 gap-y-3">
+          <% %i[spot short funding rewards].each do |leg| %>
+            <div class="flex items-center gap-2.5">
+              <%= render DS::Toggle.new(
+                id: "basis-toggle-#{leg}",
+                name: "basis_leg_#{leg}",
+                checked: true,
+                data: {
+                  basis_chart_target: "toggle",
+                  leg: leg,
+                  action: "change->basis-chart#redraw"
+                }
+              ) %>
+              <label for="basis-toggle-<%= leg %>" class="text-sm text-primary cursor-pointer"><%= t(".toggles.#{leg}") %></label>
+            </div>
+          <% end %>
+        </div>
+      </section>
+
+      <%# Main chart card %>
+      <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
+        <p class="text-[11px] font-medium uppercase tracking-wide text-secondary mb-4"><%= t(".chart.heading") %></p>
+        <div class="relative w-full h-80" data-basis-chart-target="chart"></div>
+      </section>
+    </div>
+  <% end %>
+</div>

@@ -23,6 +23,14 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
     Provider::Response.new(success?: false, data: nil, error: Provider::Error.new(message))
   end
 
+  def sorted_wallets_param(*wallets)
+    wallets
+      .map { |blockchain, address| { blockchain: blockchain, address: address } }
+      .sort_by { |wallet| [ wallet[:blockchain].downcase, wallet[:address].downcase ] }
+      .map { |wallet| "#{wallet[:blockchain]}:#{wallet[:address]}" }
+      .join(",")
+  end
+
   test "returns early when no linked accounts" do
     importer = CoinstatsItem::Importer.new(@coinstats_item, coinstats_provider: @mock_provider)
 
@@ -457,8 +465,13 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
       # 0xfailing not included - simulates partial failure or missing data
     ]
 
+    expected_wallets_param = sorted_wallets_param(
+      [ "ethereum", "0xworking" ],
+      [ "ethereum", "0xfailing" ]
+    )
+
     @mock_provider.expects(:get_wallet_balances)
-      .with("ethereum:0xworking,ethereum:0xfailing")
+      .with(expected_wallets_param)
       .returns(success_response(bulk_response))
 
     @mock_provider.expects(:extract_wallet_balance)
@@ -475,7 +488,7 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
     ]
 
     @mock_provider.expects(:get_wallet_transactions)
-      .with("ethereum:0xworking,ethereum:0xfailing")
+      .with(expected_wallets_param)
       .returns(success_response(bulk_transactions_response))
 
     @mock_provider.expects(:extract_wallet_transactions)
@@ -550,8 +563,13 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
       }
     ]
 
+    expected_wallets_param = sorted_wallets_param(
+      [ "ethereum", "0xworking" ],
+      [ "dogecoin", "Ddoge123" ]
+    )
+
     @mock_provider.expects(:get_wallet_balances)
-      .with("ethereum:0xworking,dogecoin:Ddoge123")
+      .with(expected_wallets_param)
       .returns(success_response(bulk_response))
 
     @mock_provider.expects(:extract_wallet_balance)
@@ -568,7 +586,7 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
     ]
 
     @mock_provider.expects(:get_wallet_transactions)
-      .with("ethereum:0xworking,dogecoin:Ddoge123")
+      .with(expected_wallets_param)
       .returns(success_response(bulk_transactions_response))
 
     @mock_provider.expects(:extract_wallet_transactions)
@@ -649,13 +667,18 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
     )
     AccountProvider.create!(account: account2, provider: coinstats_account2)
 
+    expected_wallets_param = sorted_wallets_param(
+      [ "ethereum", "0xeth123" ],
+      [ "dogecoin", "Ddoge456" ]
+    )
+
     @mock_provider.expects(:get_wallet_balances)
-      .with("ethereum:0xeth123,dogecoin:Ddoge456")
+      .with(expected_wallets_param)
       .raises(Provider::Coinstats::Error.new("CoinStats timeout"))
 
     bulk_transactions_response = []
     @mock_provider.expects(:get_wallet_transactions)
-      .with("ethereum:0xeth123,dogecoin:Ddoge456")
+      .with(expected_wallets_param)
       .returns(success_response(bulk_transactions_response))
 
     assert_difference "DebugLogEntry.count", 3 do
@@ -728,8 +751,13 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
       }
     ]
 
+    expected_wallets_param = sorted_wallets_param(
+      [ "ethereum", "0xeth123" ],
+      [ "bitcoin", "bc1qbtc456" ]
+    )
+
     @mock_provider.expects(:get_wallet_balances)
-      .with("ethereum:0xeth123,bitcoin:bc1qbtc456")
+      .with(expected_wallets_param)
       .returns(success_response(bulk_response))
 
     @mock_provider.expects(:extract_wallet_balance)
@@ -756,7 +784,7 @@ class CoinstatsItem::ImporterTest < ActiveSupport::TestCase
     ]
 
     @mock_provider.expects(:get_wallet_transactions)
-      .with("ethereum:0xeth123,bitcoin:bc1qbtc456")
+      .with(expected_wallets_param)
       .returns(success_response(bulk_transactions_response))
 
     @mock_provider.expects(:extract_wallet_transactions)
