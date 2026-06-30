@@ -29,6 +29,7 @@ class BasisTrade::RewardsValueCalculator
   end
 
   private
+
     attr_reader :starting_reference, :current_reference, :fallback_value
 
     def self.decimal_or_nil(value)
@@ -38,4 +39,4 @@ class BasisTrade::RewardsValueCalculator
     end
 
     private_class_method :decimal_or_nil
-  end
+end
