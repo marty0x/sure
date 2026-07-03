@@ -24,7 +24,7 @@ en:
         1y: 1Y
         all: All
       kpi:
-        selected_total: Selected total
+        selected_total: Account value
         spot: weETH spot leg
         short: Perps short leg
         funding: Funding accrued
@@ -36,7 +36,7 @@ en:
         funding: Funding
         rewards: Rewards
       chart:
-        heading: Combined leg equity
+        heading: Basis account value
         empty: No data in this range.
       breakdown:
         heading: Latest snapshot
@@ -44,7 +44,8 @@ en:
         note: Minor wiggles are expected from hedge mismatch, funding timing, and reward claim timing.
       tooltip:
         spot: weETH spot
+        lighter_account_value: Lighter account value
         short: Perps short
         funding: Funding
         rewards: Rewards
-        combined: Selected total
+        combined: Account value

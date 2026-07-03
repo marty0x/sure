@@ -68,20 +68,22 @@ class BasisTradeSeriesBuilder
     end
 
     def leg_values(snapshot, reward_reference: nil)
-      spot = to_decimal(snapshot.spot_leg_cents)
-      short = to_decimal(snapshot.short_leg_cents)
-      funding = to_decimal(snapshot.funding_accrued_cents)
-      rewards = rewards_value(snapshot, reward_reference: reward_reference)
-
-      build_leg_values(spot: spot, short: short, funding: funding, rewards: rewards)
-    end
-
-    def stored_leg_values(snapshot)
-      build_leg_values(
+      build_leg_payload(
         spot: to_decimal(snapshot.spot_leg_cents),
         short: to_decimal(snapshot.short_leg_cents),
         funding: to_decimal(snapshot.funding_accrued_cents),
-        rewards: to_decimal(snapshot.rewards_accrued_cents)
+        rewards: rewards_value(snapshot, reward_reference: reward_reference),
+        lighter_account_value: lighter_account_value_for(snapshot)
+      )
+    end
+
+    def stored_leg_values(snapshot)
+      build_leg_payload(
+        spot: to_decimal(snapshot.spot_leg_cents),
+        short: to_decimal(snapshot.short_leg_cents),
+        funding: to_decimal(snapshot.funding_accrued_cents),
+        rewards: to_decimal(snapshot.rewards_accrued_cents),
+        lighter_account_value: lighter_account_value_for(snapshot)
       )
     end
 
@@ -105,19 +107,33 @@ class BasisTradeSeriesBuilder
       )
     end
 
-    def build_leg_values(spot:, short:, funding:, rewards:)
+    def build_leg_payload(spot:, short:, funding:, rewards:, lighter_account_value: nil)
       spot = spot.to_f.round(2)
       short = short.to_f.round(2)
       funding = funding.to_f.round(2)
       rewards = rewards.to_f.round(2)
+      lighter_account_value = lighter_account_value&.to_f&.round(2)
+      combined = if lighter_account_value.present?
+        (spot + lighter_account_value).round(2)
+      else
+        (spot + short + funding + rewards).round(2)
+      end
 
       {
         spot: spot,
         short: short,
         funding: funding,
         rewards: rewards,
-        combined: (spot + short + funding + rewards).round(2)
+        lighter_account_value: lighter_account_value,
+        combined: combined
       }
+    end
+
+    def lighter_account_value_for(snapshot)
+      value = snapshot&.metadata&.dig("lighter", "total_account_value") || snapshot&.metadata&.dig(:lighter, :total_account_value)
+      return if value.blank?
+
+      BigDecimal(value.to_s)
     end
 
     def to_decimal(cents)

@@ -92,32 +92,10 @@
     <div
       data-controller="basis-chart"
       data-basis-chart-payload-value="<%= @basis_chart_payload.to_json %>"
-      data-basis-chart-labels-value="<%= { spot: t(".tooltip.spot"), short: t(".tooltip.short"), funding: t(".tooltip.funding"), rewards: t(".tooltip.rewards"), combined: t(".tooltip.combined") }.to_json %>"
+      data-basis-chart-labels-value="<%= { spot: t(".tooltip.spot"), lighter_account_value: t(".tooltip.lighter_account_value"), short: t(".tooltip.short"), funding: t(".tooltip.funding"), rewards: t(".tooltip.rewards"), combined: t(".tooltip.combined") }.to_json %>"
       data-basis-chart-currency-value="<%= @basis_chart_payload[:currency] %>"
       data-basis-chart-locale-value="<%= I18n.locale %>"
       class="space-y-6">
-
-      <%# Leg toggles. All enabled by default. %>
-      <section class="bg-container rounded-xl shadow-border-xs px-5 py-4">
-        <p class="text-[11px] font-medium uppercase tracking-wide text-secondary mb-3"><%= t(".toggles.heading") %></p>
-        <div class="flex flex-wrap gap-x-8 gap-y-3">
-          <% %i[spot short funding rewards].each do |leg| %>
-            <div class="flex items-center gap-2.5">
-              <%= render DS::Toggle.new(
-                id: "basis-toggle-#{leg}",
-                name: "basis_leg_#{leg}",
-                checked: true,
-                data: {
-                  basis_chart_target: "toggle",
-                  leg: leg,
-                  action: "change->basis-chart#redraw"
-                }
-              ) %>
-              <label for="basis-toggle-<%= leg %>" class="text-sm text-primary cursor-pointer"><%= t(".toggles.#{leg}") %></label>
-            </div>
-          <% end %>
-        </div>
-      </section>
 
       <%# Main chart card %>
       <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">

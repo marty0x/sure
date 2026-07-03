@@ -109,7 +109,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Live balance refresh failed: boom/i, response.body)
   end
 
-  test "renders chart payload and four toggles when snapshots exist" do
+  test "renders chart payload without legacy leg toggles when snapshots exist" do
     BasisTradeSnapshot.create!(
       family: @user.family,
       recorded_at: Time.zone.parse("2026-06-20 12:00:00"),
@@ -117,7 +117,12 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
       short_leg_cents: -25_000,
       funding_accrued_cents: 12_000,
       rewards_accrued_cents: 4_000,
-      currency: "USD"
+      currency: "USD",
+      metadata: {
+        lighter: {
+          total_account_value: "280.0"
+        }
+      }
     )
 
     get basis_path
@@ -125,9 +130,8 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "[data-controller='basis-chart']"
     assert_select "[data-basis-chart-payload-value]"
-    assert_match(/weETH Spot/i, response.body)
-    assert_match(/Perps Short/i, response.body)
-    assert_match(/Funding/i, response.body)
-    assert_match(/Rewards/i, response.body)
+    assert_match(/Basis account value/i, response.body)
+    assert_no_match(/basis-toggle-spot/, response.body)
+    assert_no_match(/basis_leg_spot/, response.body)
   end
 end

@@ -6,23 +6,19 @@ import {
   CHART_TOOLTIP_VALUE_CLASSES,
 } from "utils/chart_tooltip";
 
-// Dedicated controller for the Basis page. Draws a single line whose value at
-// each timestamp is the sum of the leg values whose toggle is enabled, and
-// recomputes that line client-side as toggles change — no server round-trip.
-//
-// Intentionally NOT built on time_series_chart_controller: that controller
-// expects one trend-colored series and has no concept of four independent
-// columns, client-side recomposition, or a multi-value tooltip.
+// Dedicated controller for the Basis page. Draws a single historical account-
+// value line from server-computed points. The tooltip still exposes the stored
+// basis legs for attribution, but the line itself represents account value
+// rather than an additive sum of rewards/funding that may already be embedded
+// in the live spot / venue balances.
 export default class extends Controller {
-  static targets = ["chart", "selectedTotal", "legTotal", "toggle"];
+  static targets = ["chart"];
   static values = {
     payload: Object,
     labels: Object,
     currency: { type: String, default: "USD" },
     locale: { type: String, default: "en" },
   };
-
-  static LEGS = ["spot", "short", "funding", "rewards"];
 
   connect() {
     if (typeof ResizeObserver !== "undefined") {
@@ -37,7 +33,6 @@ export default class extends Controller {
       this._themeObserver.observe(document.documentElement, { attributes: true });
     }
 
-    this._updateKpis();
     this._draw();
   }
 
@@ -45,30 +40,6 @@ export default class extends Controller {
     this._resizeObserver?.disconnect();
     this._themeObserver?.disconnect();
     this._tooltip?.remove();
-  }
-
-  // Action bound to each toggle's `change` event.
-  redraw() {
-    this._updateKpis();
-    this._draw();
-  }
-
-  get _enabledLegs() {
-    const enabled = {};
-    for (const leg of this.constructor.LEGS) {
-      enabled[leg] = true;
-    }
-    for (const toggle of this.toggleTargets) {
-      enabled[toggle.dataset.leg] = toggle.checked;
-    }
-    return enabled;
-  }
-
-  _selectedTotal(point, enabled) {
-    return this.constructor.LEGS.reduce(
-      (sum, leg) => sum + (enabled[leg] ? point[leg] || 0 : 0),
-      0,
-    );
   }
 
   _formatCurrency(value) {
@@ -80,23 +51,6 @@ export default class extends Controller {
     } catch (_e) {
       return `${this.currencyValue} ${value.toFixed(2)}`;
     }
-  }
-
-  // Keep the top "Selected total" KPI and per-leg KPIs in sync with the toggles.
-  _updateKpis() {
-    const totals = this.payloadValue.totals || {};
-    const enabled = this._enabledLegs;
-    const selected = this._selectedTotal(totals, enabled);
-
-    if (this.hasSelectedTotalTarget) {
-      this.selectedTotalTarget.textContent = this._formatCurrency(selected);
-    }
-
-    this.legTotalTargets.forEach((el) => {
-      const leg = el.dataset.leg;
-      el.textContent = this._formatCurrency(totals[leg] || 0);
-      el.classList.toggle("opacity-40", !enabled[leg]);
-    });
   }
 
   _draw() {
@@ -114,15 +68,13 @@ export default class extends Controller {
     if (width <= 0 || height <= 0) return;
 
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    const textPrimary = isDark ? "#ffffff" : "#171717";
     const textSecondary = isDark ? "#cfcfcf" : "#737373";
     const borderSubdued = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.10)";
     const lineColor = isDark ? "#ffffff" : "#171717";
 
-    const enabled = this._enabledLegs;
     const series = points.map((p) => ({
       date: p.dateObj,
-      value: this._selectedTotal(p, enabled),
+      value: p.combined || 0,
       point: p,
     }));
 
@@ -132,8 +84,6 @@ export default class extends Controller {
     const innerHeight = height - margin.top - margin.bottom;
 
     const xExtent = d3.extent(series, (d) => d.date);
-    // A single point would collapse the time scale; pad the domain a day either
-    // side so the dot renders centered.
     const x = d3
       .scaleTime()
       .domain(
@@ -157,9 +107,8 @@ export default class extends Controller {
       .attr("height", height)
       .attr("viewBox", `0 0 ${width} ${height}`)
       .attr("role", "img")
-      .attr("aria-label", "Basis combined leg equity");
+      .attr("aria-label", "Basis account value history");
 
-    // Y gridlines + labels
     if (yAxisVisible) {
       const yTicks = y.ticks(4);
       svg
@@ -188,7 +137,6 @@ export default class extends Controller {
         .text((d) => this._formatCurrency(d));
     }
 
-    // X axis labels (first / middle / last)
     const xLabelTicks =
       series.length <= 2 ? series : [series[0], series[Math.floor(series.length / 2)], series[series.length - 1]];
     svg
@@ -219,7 +167,6 @@ export default class extends Controller {
       .attr("stroke-linecap", "round")
       .attr("d", line);
 
-    // Single-point series renders a dot so it doesn't disappear.
     if (series.length === 1) {
       svg
         .append("circle")
@@ -229,10 +176,10 @@ export default class extends Controller {
         .attr("fill", lineColor);
     }
 
-    this._installTooltip(svg, series, x, y, margin, innerWidth, innerHeight, lineColor, enabled);
+    this._installTooltip(svg, series, x, y, margin, innerWidth, innerHeight, lineColor);
   }
 
-  _installTooltip(svg, series, x, y, margin, innerWidth, innerHeight, lineColor, enabled) {
+  _installTooltip(svg, series, x, y, margin, innerWidth, innerHeight, lineColor) {
     if (!this._tooltip) {
       this._tooltip = document.createElement("div");
       this._tooltip.className = CHART_TOOLTIP_CLASSES;
@@ -276,7 +223,7 @@ export default class extends Controller {
         crosshair.attr("x1", x(d.date)).attr("x2", x(d.date)).style("opacity", 1);
         dot.attr("cx", x(d.date)).attr("cy", y(d.value)).style("opacity", 1);
 
-        tooltip.innerHTML = this._tooltipHtml(d.point, enabled, d.value);
+        tooltip.innerHTML = this._tooltipHtml(d.point, d.value);
         tooltip.style.display = "block";
 
         const rect = this.chartTarget.getBoundingClientRect();
@@ -293,24 +240,31 @@ export default class extends Controller {
       });
   }
 
-  _tooltipHtml(point, enabled, selectedTotal) {
-    const row = (label, value, on) =>
-      `<div class="flex items-center justify-between gap-4 ${on ? "" : "opacity-40"}">
+  _tooltipHtml(point, combinedValue) {
+    const row = (label, value) =>
+      `<div class="flex items-center justify-between gap-4">
          <span class="text-secondary">${label}</span>
          <span class="${CHART_TOOLTIP_VALUE_CLASSES}">${this._formatCurrency(value)}</span>
        </div>`;
 
     const labels = this.labelsValue || {};
+    const rows = [
+      row(labels.spot || "weETH spot", point.spot || 0),
+      point.lighter_account_value != null
+        ? row(labels.lighter_account_value || "Lighter account value", point.lighter_account_value)
+        : "",
+      row(labels.short || "Perps short", point.short || 0),
+      row(labels.funding || "Funding", point.funding || 0),
+      row(labels.rewards || "Rewards", point.rewards || 0),
+    ].filter(Boolean);
+
     return `
       <div class="${CHART_TOOLTIP_CONTEXT_CLASSES}">${point.date_formatted || point.date}</div>
       <div class="space-y-0.5">
-        ${row(labels.spot || "weETH spot", point.spot, enabled.spot)}
-        ${row(labels.short || "Perps short", point.short, enabled.short)}
-        ${row(labels.funding || "Funding", point.funding, enabled.funding)}
-        ${row(labels.rewards || "Rewards", point.rewards, enabled.rewards)}
+        ${rows.join("")}
         <div class="flex items-center justify-between gap-4 pt-1 mt-1 border-t border-secondary">
-          <span class="text-primary font-medium">${labels.combined || "Selected total"}</span>
-          <span class="${CHART_TOOLTIP_VALUE_CLASSES} text-primary">${this._formatCurrency(selectedTotal)}</span>
+          <span class="text-primary font-medium">${labels.combined || "Account value"}</span>
+          <span class="${CHART_TOOLTIP_VALUE_CLASSES} text-primary">${this._formatCurrency(combinedValue)}</span>
         </div>
       </div>`;
   }
