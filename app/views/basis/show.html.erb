@@ -97,20 +97,6 @@
       data-basis-chart-locale-value="<%= I18n.locale %>"
       class="space-y-6">
 
-      <%# KPI strip. Selected total updates live as legs are toggled. %>
-      <section class="grid grid-cols-2 @3xl:grid-cols-5 gap-3">
-        <div class="bg-container rounded-xl shadow-border-xs px-5 py-5 col-span-2 @3xl:col-span-1">
-          <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.selected_total") %></p>
-          <p class="text-3xl font-medium text-primary tabular-nums mt-2 privacy-sensitive" data-basis-chart-target="selectedTotal"></p>
-        </div>
-        <% %i[spot short funding rewards].each do |leg| %>
-          <div class="bg-container rounded-xl shadow-border-xs px-5 py-5">
-            <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.#{leg}") %></p>
-            <p class="text-xl font-medium text-primary tabular-nums mt-2 privacy-sensitive" data-basis-chart-target="legTotal" data-leg="<%= leg %>"></p>
-          </div>
-        <% end %>
-      </section>
-
       <%# Leg toggles. All enabled by default. %>
       <section class="bg-container rounded-xl shadow-border-xs px-5 py-4">
         <p class="text-[11px] font-medium uppercase tracking-wide text-secondary mb-3"><%= t(".toggles.heading") %></p>
