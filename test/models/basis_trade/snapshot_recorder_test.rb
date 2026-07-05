@@ -27,7 +27,7 @@ class BasisTrade::SnapshotRecorderTest < ActiveSupport::TestCase
       spot_leg_cents: 709_544,
       short_leg_cents: 711_299,
       funding_accrued_cents: 63,
-      rewards_accrued_cents: 0,
+      rewards_accrued_cents: 8_492,
       metadata: {
         rewards_basis: {
           eth_balance: BigDecimal("2.4901"),
@@ -51,7 +51,7 @@ class BasisTrade::SnapshotRecorderTest < ActiveSupport::TestCase
     assert_equal 7_095_440, snapshot.spot_leg_cents
     assert_equal(-7_112_990, snapshot.short_leg_cents)
     assert_equal 630, snapshot.funding_accrued_cents
-    assert_equal 0, snapshot.rewards_accrued_cents
+    assert_equal 84_920, snapshot.rewards_accrued_cents
     assert_equal "USD", snapshot.currency
     assert_equal "2.4901", snapshot.metadata.dig("rewards_basis", "eth_balance").to_s
     assert_equal "2850.93", snapshot.metadata.dig("rewards_basis", "eth_price_usd").to_s

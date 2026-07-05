@@ -5,7 +5,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     @family = families(:dylan_family)
   end
 
-  test "uses spot wallet value, lighter notional for short leg, keeps live rewards at zero without an initial basis snapshot, and captures reward basis metadata" do
+  test "uses spot wallet value, lighter notional for short leg, includes unconverted reward USDC, and captures reward basis metadata" do
     @family.update!(
       basis_long_address: "0x1111111111111111111111111111111111111111",
       basis_long_token_addresses: "0x2222222222222222222222222222222222222222",
@@ -37,7 +37,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     assert_equal 709_544, result.snapshot[:spot_leg_cents]
     assert_equal 711_299, result.snapshot[:short_leg_cents]
     assert_equal 63, result.snapshot[:funding_accrued_cents]
-    assert_equal 0, result.snapshot[:rewards_accrued_cents]
+    assert_equal 8_492, result.snapshot[:rewards_accrued_cents]
     assert_equal BigDecimal("2850.99"), result.snapshot.dig(:metadata, :lighter, :total_account_value)
     assert_equal BigDecimal("2850.99"), result.snapshot.dig(:metadata, :lighter, :total_collateral)
     assert_equal BigDecimal("2.4901"), result.snapshot.dig(:metadata, :rewards_basis, :eth_balance)
@@ -45,7 +45,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     assert_equal BigDecimal("84.92"), result.snapshot.dig(:metadata, :rewards_basis, :usdc_balance)
   end
 
-  test "derives live rewards from the initial basis snapshot when one exists" do
+  test "keeps live rewards at zero after reward USDC has been converted into weETH" do
     @family.update!(
       basis_long_address: "0x1111111111111111111111111111111111111111",
       basis_long_token_addresses: "0x2222222222222222222222222222222222222222",
@@ -74,8 +74,8 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
         tokens: [ { symbol: "weETH", balance: BigDecimal("2.4901"), price_usd: BigDecimal("2850.93") } ]
       },
       {
-        total_value: BigDecimal("84.92"),
-        tokens: [ { symbol: "USDC", balance: BigDecimal("84.92"), price_usd: BigDecimal("1.0") } ]
+        total_value: BigDecimal("0"),
+        tokens: []
       }
     )
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
@@ -88,7 +88,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
 
     result = described_class.new(family: @family).call
 
-    assert_equal 8_521, result.snapshot[:rewards_accrued_cents]
+    assert_equal 0, result.snapshot[:rewards_accrued_cents]
   end
 
   private

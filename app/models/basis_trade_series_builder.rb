@@ -1,17 +1,15 @@
 # Converts persisted BasisTradeSnapshot rows into the JSON payload consumed by
-# the Basis page chart. Date filtering, serialization and KPI rollups happen
-# here on the server; the browser is only responsible for recomputing the
-# displayed line as leg toggles change.
+# the Basis page chart. Date filtering, serialization, and account-value rollups
+# happen here on the server; the browser only renders the precomputed series.
 class BasisTradeSeriesBuilder
   # Legs are stored in integer subunits and surfaced to the chart as plain
   # decimals divided by this factor so the client can sum them directly.
   CENTS_PER_UNIT = 1_000.0
 
-  def initialize(family:, start_date: nil, end_date: nil, current_reward_reference: nil)
+  def initialize(family:, start_date: nil, end_date: nil)
     @family = family
     @start_date = start_date
     @end_date = end_date
-    @current_reward_reference = BasisTrade::RewardsValueCalculator.normalize_reference(current_reward_reference)
   end
 
   def payload
@@ -24,7 +22,7 @@ class BasisTradeSeriesBuilder
   end
 
   private
-    attr_reader :family, :start_date, :end_date, :current_reward_reference
+    attr_reader :family, :start_date, :end_date
 
     def snapshots
       @snapshots ||= begin
@@ -67,12 +65,12 @@ class BasisTradeSeriesBuilder
       end
     end
 
-    def leg_values(snapshot, reward_reference: nil)
+    def leg_values(snapshot)
       build_leg_payload(
         spot: to_decimal(snapshot.spot_leg_cents),
         short: to_decimal(snapshot.short_leg_cents),
         funding: to_decimal(snapshot.funding_accrued_cents),
-        rewards: rewards_value(snapshot, reward_reference: reward_reference),
+        rewards: rewards_value(snapshot),
         lighter_account_value: lighter_account_value_for(snapshot)
       )
     end
@@ -87,18 +85,12 @@ class BasisTradeSeriesBuilder
       )
     end
 
-    def rewards_value(snapshot, reward_reference: nil)
-      reference = reward_reference.presence || reward_reference_for(snapshot)
+    def rewards_value(snapshot)
+      reference = reward_reference_for(snapshot)
+      usdc_balance = reference&.dig(:usdc_balance)
+      return usdc_balance.to_f.round(2) unless usdc_balance.nil?
 
-      BasisTrade::RewardsValueCalculator.new(
-        starting_reference: reward_reference_for(all_snapshots.first),
-        current_reference: {
-          eth_balance: reference&.dig(:eth_balance),
-          eth_price_usd: current_reward_reference&.dig(:eth_price_usd).presence || reference&.dig(:eth_price_usd),
-          usdc_balance: reference&.dig(:usdc_balance)
-        },
-        fallback_value: to_decimal(snapshot.rewards_accrued_cents)
-      ).value
+      to_decimal(snapshot.rewards_accrued_cents)
     end
 
     def reward_reference_for(snapshot)
@@ -114,7 +106,7 @@ class BasisTradeSeriesBuilder
       rewards = rewards.to_f.round(2)
       lighter_account_value = lighter_account_value&.to_f&.round(2)
       combined = if lighter_account_value.present?
-        (spot + lighter_account_value).round(2)
+        (spot + lighter_account_value + rewards).round(2)
       else
         (spot + short + funding + rewards).round(2)
       end

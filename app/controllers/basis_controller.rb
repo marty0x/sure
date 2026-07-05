@@ -14,8 +14,7 @@ class BasisController < ApplicationController
 
     @basis_chart_payload = BasisTradeSeriesBuilder.new(
       family: Current.family,
-      start_date: start_date,
-      current_reward_reference: live_snapshot_result.snapshot&.dig(:metadata, :rewards_basis)
+      start_date: start_date
     ).payload
 
     @has_snapshots = @basis_chart_payload[:points].any?

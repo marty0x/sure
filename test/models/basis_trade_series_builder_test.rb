@@ -46,12 +46,12 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
     payload = BasisTradeSeriesBuilder.new(family: @family).payload
 
     assert_equal [ "2026-06-20", "2026-06-21" ], payload[:points].map { |point| point[:date] }
-    assert_equal 1785.0, payload[:points].first[:combined]
-    assert_equal 1845.0, payload[:points].last[:combined]
+    assert_equal 1789.0, payload[:points].first[:combined]
+    assert_equal 1850.0, payload[:points].last[:combined]
     assert_equal 285.0, payload[:points].first[:lighter_account_value]
   end
 
-  test "uses the initial snapshot for totals so the baseline account value uses stored lighter account value" do
+  test "uses the initial snapshot for totals so baseline account value includes stored reward USDC and lighter account value" do
     BasisTradeSnapshot.create!(
       family: @family,
       recorded_at: Time.zone.parse("2026-06-20 12:00:00"),
@@ -91,19 +91,12 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
       }
     )
 
-    totals = BasisTradeSeriesBuilder.new(
-      family: @family,
-      current_reward_reference: {
-        eth_balance: "2.04",
-        eth_price_usd: "3200.0",
-        usdc_balance: "7.5"
-      }
-    ).payload[:totals]
+    totals = BasisTradeSeriesBuilder.new(family: @family).payload[:totals]
 
-    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, lighter_account_value: 280.0, combined: 1780.0 }, totals)
+    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 10.0, lighter_account_value: 280.0, combined: 1790.0 }, totals)
   end
 
-  test "derives rewards from ETH quantity growth at current USD plus snapshot USDC without adding them again into combined account value" do
+  test "shows only unconverted reward USDC in rewards and includes it in combined account value" do
     BasisTradeSnapshot.create!(
       family: @family,
       recorded_at: Time.zone.parse("2026-06-20 12:00:00"),
@@ -143,19 +136,12 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
       }
     )
 
-    payload = BasisTradeSeriesBuilder.new(
-      family: @family,
-      current_reward_reference: {
-        eth_balance: "2.04",
-        eth_price_usd: "3200.0",
-        usdc_balance: "7.5"
-      }
-    ).payload
+    payload = BasisTradeSeriesBuilder.new(family: @family).payload
 
     assert_equal 0.0, payload[:points].first[:rewards]
-    assert_equal 101.0, payload[:points].last[:rewards]
+    assert_equal 5.0, payload[:points].last[:rewards]
     assert_equal 1780.0, payload[:points].first[:combined]
-    assert_equal 1840.0, payload[:points].last[:combined]
+    assert_equal 1845.0, payload[:points].last[:combined]
     assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, lighter_account_value: 280.0, combined: 1780.0 }, payload[:totals])
     assert_instance_of Float, payload[:points].last[:rewards]
     assert_instance_of Float, payload[:points].last[:combined]

@@ -18,7 +18,7 @@
 
       <div class="grid grid-cols-2 @3xl:grid-cols-5 gap-3">
         <% lighter_account_value_cents = ((@basis_live_snapshot.dig(:metadata, :lighter, :total_account_value) || 0).to_d * 100).round(0).to_i %>
-        <% live_total_cents = @basis_live_snapshot[:spot_leg_cents] + lighter_account_value_cents %>
+        <% live_total_cents = @basis_live_snapshot[:spot_leg_cents] + lighter_account_value_cents + @basis_live_snapshot[:rewards_accrued_cents] %>
         <% live_total_amount = live_total_cents / 100.0 %>
         <div class="bg-container-inset rounded-xl px-5 py-5 col-span-2 @3xl:col-span-1">
           <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".kpi.selected_total") %></p>
