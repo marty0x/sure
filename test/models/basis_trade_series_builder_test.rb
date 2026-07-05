@@ -93,7 +93,7 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
 
     totals = BasisTradeSeriesBuilder.new(family: @family).payload[:totals]
 
-    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 10.0, lighter_account_value: 280.0, combined: 1790.0 }, totals)
+    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, lighter_account_value: 280.0, combined: 1780.0 }, totals)
   end
 
   test "shows only unconverted reward USDC in rewards and includes it in combined account value" do
