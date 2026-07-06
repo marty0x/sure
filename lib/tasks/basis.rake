@@ -34,4 +34,31 @@ namespace :basis do
 
     puts "Recorded basis snapshot #{snapshot.id} for #{family.name} at #{recorded_at}"
   end
+
+  # Pulls the live ether.fi Cash borrow balance from the DebtManager on Optimism
+  # and overwrites the "ether.fi Credit" loan account's balance.
+  #
+  # Example:
+  #   FAMILY_EMAIL=user@example.com bin/rails basis:refresh_cash_loan
+  desc "Refresh the ether.fi Credit loan balance from the live ether.fi Cash debt"
+  task refresh_cash_loan: :environment do
+    family =
+      if ENV["FAMILY_ID"].present?
+        Family.find(ENV["FAMILY_ID"])
+      elsif ENV["FAMILY_EMAIL"].present?
+        User.find_by!(email: ENV["FAMILY_EMAIL"]).family
+      else
+        abort "Provide FAMILY_ID or FAMILY_EMAIL"
+      end
+
+    result = BasisTrade::CashLoanUpdater.new(family: family).call
+
+    if result.error.present?
+      abort "Failed to refresh ether.fi Credit loan for #{family.name}: #{result.error}"
+    elsif result.updated
+      puts "Updated ether.fi Credit loan for #{family.name} to #{result.balance}"
+    else
+      puts "Nothing to update for #{family.name} (no configured vault address or ether.fi Credit account)"
+    end
+  end
 end

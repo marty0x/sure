@@ -42,11 +42,12 @@ export default class extends Controller {
     this._tooltip?.remove();
   }
 
-  _formatCurrency(value) {
+  _formatCurrency(value, { compact = false } = {}) {
     try {
       return new Intl.NumberFormat(this.localeValue, {
         style: "currency",
         currency: this.currencyValue,
+        ...(compact ? { notation: "compact", maximumFractionDigits: 1 } : {}),
       }).format(value);
     } catch (_e) {
       return `${this.currencyValue} ${value.toFixed(2)}`;
@@ -78,8 +79,10 @@ export default class extends Controller {
       point: p,
     }));
 
-    const yAxisVisible = width - 16 - 24 >= 320;
-    const margin = { top: 16, right: 24, bottom: 28, left: yAxisVisible ? 56 : 16 };
+    // Always show the Y-axis; on narrow (mobile) widths use compact labels
+    // (e.g. "$15K") and a tighter left margin so the axis values still fit.
+    const isNarrow = width < 360;
+    const margin = { top: 16, right: 24, bottom: 28, left: isNarrow ? 44 : 56 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -109,33 +112,31 @@ export default class extends Controller {
       .attr("role", "img")
       .attr("aria-label", "Basis account value history");
 
-    if (yAxisVisible) {
-      const yTicks = y.ticks(4);
-      svg
-        .append("g")
-        .selectAll("line")
-        .data(yTicks)
-        .join("line")
-        .attr("x1", margin.left)
-        .attr("x2", margin.left + innerWidth)
-        .attr("y1", (d) => y(d))
-        .attr("y2", (d) => y(d))
-        .attr("stroke", borderSubdued)
-        .attr("stroke-width", 1);
+    const yTicks = y.ticks(isNarrow ? 3 : 4);
+    svg
+      .append("g")
+      .selectAll("line")
+      .data(yTicks)
+      .join("line")
+      .attr("x1", margin.left)
+      .attr("x2", margin.left + innerWidth)
+      .attr("y1", (d) => y(d))
+      .attr("y2", (d) => y(d))
+      .attr("stroke", borderSubdued)
+      .attr("stroke-width", 1);
 
-      svg
-        .append("g")
-        .selectAll("text")
-        .data(yTicks)
-        .join("text")
-        .attr("x", margin.left - 8)
-        .attr("y", (d) => y(d))
-        .attr("dy", "0.32em")
-        .attr("text-anchor", "end")
-        .attr("font-size", 11)
-        .attr("fill", textSecondary)
-        .text((d) => this._formatCurrency(d));
-    }
+    svg
+      .append("g")
+      .selectAll("text")
+      .data(yTicks)
+      .join("text")
+      .attr("x", margin.left - 8)
+      .attr("y", (d) => y(d))
+      .attr("dy", "0.32em")
+      .attr("text-anchor", "end")
+      .attr("font-size", isNarrow ? 10 : 11)
+      .attr("fill", textSecondary)
+      .text((d) => this._formatCurrency(d, { compact: isNarrow }));
 
     const xLabelTicks =
       series.length <= 2 ? series : [series[0], series[Math.floor(series.length / 2)], series[series.length - 1]];

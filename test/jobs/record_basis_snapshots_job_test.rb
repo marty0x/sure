@@ -16,6 +16,11 @@ class RecordBasisSnapshotsJobTest < ActiveJob::TestCase
     BasisTrade::SnapshotRecorder.expects(:new).with(family: configured_family, recorded_at: kind_of(ActiveSupport::TimeWithZone)).returns(recorder)
     BasisTrade::SnapshotRecorder.expects(:new).with(family: unconfigured_family, recorded_at: kind_of(ActiveSupport::TimeWithZone)).never
 
+    updater = mock
+    updater.expects(:call).once.returns(BasisTrade::CashLoanUpdater::Result.new(configured: false, updated: false))
+    BasisTrade::CashLoanUpdater.expects(:new).with(family: configured_family).returns(updater)
+    BasisTrade::CashLoanUpdater.expects(:new).with(family: unconfigured_family).never
+
     RecordBasisSnapshotsJob.perform_now
   end
 end
