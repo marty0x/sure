@@ -46,8 +46,8 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
     payload = BasisTradeSeriesBuilder.new(family: @family).payload
 
     assert_equal [ "2026-06-20", "2026-06-21" ], payload[:points].map { |point| point[:date] }
-    assert_equal 1789.0, payload[:points].first[:combined]
-    assert_equal 1850.0, payload[:points].last[:combined]
+    assert_equal 1801.0, payload[:points].first[:combined]
+    assert_equal 1865.0, payload[:points].last[:combined]
     assert_equal 285.0, payload[:points].first[:lighter_account_value]
   end
 
@@ -93,7 +93,7 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
 
     totals = BasisTradeSeriesBuilder.new(family: @family).payload[:totals]
 
-    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, lighter_account_value: 280.0, combined: 1780.0 }, totals)
+    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, lighter_account_value: 280.0, combined: 1792.0 }, totals)
   end
 
   test "shows only unconverted reward USDC in rewards and includes it in combined account value" do
@@ -140,9 +140,9 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
 
     assert_equal 0.0, payload[:points].first[:rewards]
     assert_equal 5.0, payload[:points].last[:rewards]
-    assert_equal 1780.0, payload[:points].first[:combined]
-    assert_equal 1845.0, payload[:points].last[:combined]
-    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, lighter_account_value: 280.0, combined: 1780.0 }, payload[:totals])
+    assert_equal 1792.0, payload[:points].first[:combined]
+    assert_equal 1860.0, payload[:points].last[:combined]
+    assert_equal({ spot: 1500.0, short: -25.0, funding: 12.0, rewards: 0.0, lighter_account_value: 280.0, combined: 1792.0 }, payload[:totals])
     assert_instance_of Float, payload[:points].last[:rewards]
     assert_instance_of Float, payload[:points].last[:combined]
   end

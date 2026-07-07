@@ -106,7 +106,7 @@ class BasisTradeSeriesBuilder
       rewards = rewards.to_f.round(2)
       lighter_account_value = lighter_account_value&.to_f&.round(2)
       combined = if lighter_account_value.present?
-        (spot + lighter_account_value + rewards).round(2)
+        (spot + lighter_account_value + funding + rewards).round(2)
       else
         (spot + short + funding + rewards).round(2)
       end

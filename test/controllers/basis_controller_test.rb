@@ -68,7 +68,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
       total_account_value: BigDecimal("2850.99"),
       total_collateral: BigDecimal("2850.99"),
       total_position_notional: BigDecimal("7112.99"),
-      funding_accrued: BigDecimal("0.63"),
+      funding_accrued: BigDecimal("17.40"),
       accounts: [ { index: "730104", total_asset_value: BigDecimal("2850.99") } ]
     )
 
@@ -80,11 +80,11 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Lighter account values/i, response.body)
     assert_match(/weETH/i, response.body)
     assert_match(/Account 730104/i, response.body)
-    assert_match(/\$10,031\.35/, response.body)
+    assert_match(/\$10,048\.75/, response.body)
     assert_match(/\$7,095\.44/, response.body)
     assert_match(/\$2,850\.99 USD/, response.body)
     assert_match(/\$7,112\.99/, response.body)
-    assert_match(/\$0\.63/, response.body)
+    assert_match(/\$17\.40/, response.body)
     assert_match(/\$84\.92/, response.body)
     assert_includes response.body, "text-success"
     assert_includes response.body, "text-destructive"
