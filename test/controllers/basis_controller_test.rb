@@ -91,10 +91,38 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders basis configuration guidance when direct sources are not configured" do
+    BasisTrade::CashLoanUpdater.expects(:new).never
+
     get basis_path
 
     assert_response :success
     assert_match(/Settings → Preferences/i, response.body)
+  end
+
+  test "refreshes ether.fi Credit on page load when a spot vault is configured" do
+    @user.family.update!(basis_long_address: "0x1111111111111111111111111111111111111111")
+
+    updater = mock
+    updater.expects(:call).once.returns(
+      BasisTrade::CashLoanUpdater::Result.new(configured: true, updated: true, balance: BigDecimal("123.45"))
+    )
+    BasisTrade::CashLoanUpdater.expects(:new).with(family: @user.family).returns(updater)
+
+    BasisTrade::LiveSnapshotBuilder.any_instance.stubs(:call).returns(
+      BasisTrade::LiveSnapshotBuilder::Result.new(configured: true, snapshot: {
+        recorded_at: Time.current,
+        currency: "USD",
+        spot_leg_cents: 0,
+        short_leg_cents: 0,
+        funding_accrued_cents: 0,
+        rewards_accrued_cents: 0,
+        metadata: {}
+      })
+    )
+
+    get basis_path
+
+    assert_response :success
   end
 
   test "renders live basis error when direct source refresh fails" do

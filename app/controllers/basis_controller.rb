@@ -10,6 +10,7 @@ class BasisController < ApplicationController
   def show
     @range = RANGES.key?(params[:range]) ? params[:range] : "all"
     start_date = RANGES[@range] ? RANGES[@range].days.ago.to_date : nil
+    refresh_cash_loan
     live_snapshot_result = BasisTrade::LiveSnapshotBuilder.new(family: Current.family).call
 
     @basis_chart_payload = BasisTradeSeriesBuilder.new(
@@ -25,4 +26,16 @@ class BasisController < ApplicationController
     @breadcrumbs = [ [ t("breadcrumbs.home"), root_path ],
                      [ t("basis.show.title"), nil ] ]
   end
+
+  private
+    def refresh_cash_loan
+      return if Current.family.basis_long_address.blank?
+
+      result = BasisTrade::CashLoanUpdater.new(family: Current.family).call
+      return if result.error.blank?
+
+      Rails.logger.error(
+        "[BasisController] cash loan refresh failed family_id=#{Current.family.id} error=#{result.error}"
+      )
+    end
 end
