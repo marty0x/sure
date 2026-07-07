@@ -8,9 +8,9 @@ import {
 
 // Dedicated controller for the Basis page. Draws a single historical account-
 // value line from server-computed points. The tooltip still exposes the stored
-// basis legs for attribution, but the line itself represents account value
-// rather than an additive sum of rewards/funding that may already be embedded
-// in the live spot / venue balances.
+// basis legs for attribution, while the line itself uses the server-computed
+// combined account-value series for each snapshot (typically spot + Lighter
+// account value + funding + rewards when Lighter account value is present).
 export default class extends Controller {
   static targets = ["chart"];
   static values = {
