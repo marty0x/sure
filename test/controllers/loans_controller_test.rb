@@ -62,6 +62,7 @@ class LoansControllerTest < ActionDispatch::IntegrationTest
           institution_name: "Updated Bank",
           institution_domain: "updatedbank.example",
           notes: "Updated loan notes",
+          exclude_from_net_worth: true,
           accountable_type: "Loan",
           accountable_attributes: {
             id: @account.accountable_id,
@@ -82,6 +83,7 @@ class LoansControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Updated Bank", @account[:institution_name]
     assert_equal "updatedbank.example", @account[:institution_domain]
     assert_equal "Updated loan notes", @account[:notes]
+    assert @account.exclude_from_net_worth?
     assert_equal "auto", @account.accountable.subtype
     assert_equal 4.5, @account.accountable.interest_rate
     assert_equal 48, @account.accountable.term_months

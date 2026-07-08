@@ -2,7 +2,7 @@ class AccountsController < ApplicationController
   include StreamExtensions
 
   before_action :set_account, only: %i[show sparkline sync set_default remove_default]
-  before_action :set_manageable_account, only: %i[toggle_active toggle_exclude_from_reports destroy unlink confirm_unlink select_provider]
+  before_action :set_manageable_account, only: %i[toggle_active toggle_exclude_from_reports toggle_exclude_from_net_worth destroy unlink confirm_unlink select_provider]
   include Periodable
 
   def index
@@ -111,6 +111,14 @@ class AccountsController < ApplicationController
   # financial reports, dashboards, and exports.
   def toggle_exclude_from_reports
     @account.update!(exclude_from_reports: !@account.exclude_from_reports?)
+    redirect_to accounts_path
+  end
+
+  # Toggles the exclude_from_net_worth flag on the account and redirects to the
+  # account list. The flag controls whether the account's balance contributes to
+  # net worth and total-value calculations while preserving activity for budgets.
+  def toggle_exclude_from_net_worth
+    @account.update!(exclude_from_net_worth: !@account.exclude_from_net_worth?)
     redirect_to accounts_path
   end
 

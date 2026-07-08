@@ -308,6 +308,27 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to account_url(accounts(:credit_card))
   end
 
+  test "toggle_exclude_from_net_worth toggles the flag on an account" do
+    assert_not @account.exclude_from_net_worth?
+
+    patch toggle_exclude_from_net_worth_account_url(@account)
+    assert_redirected_to accounts_path
+    @account.reload
+    assert @account.exclude_from_net_worth?
+
+    patch toggle_exclude_from_net_worth_account_url(@account)
+    assert_redirected_to accounts_path
+    @account.reload
+    assert_not @account.exclude_from_net_worth?
+  end
+
+  test "toggle_exclude_from_net_worth requires write permission" do
+    sign_in users(:family_member)
+
+    patch toggle_exclude_from_net_worth_account_url(accounts(:credit_card))
+    assert_redirected_to account_url(accounts(:credit_card))
+  end
+
   test "select_provider shows available providers" do
     get select_provider_account_url(@account)
     assert_response :success

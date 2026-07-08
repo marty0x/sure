@@ -34,7 +34,10 @@ class BalanceSheet::AccountGroup
   end
 
   def total
-    accounts.reject { |a| a.respond_to?(:exclude_from_reports?) && a.exclude_from_reports? }.sum(&:converted_balance)
+    accounts
+      .reject { |a| a.respond_to?(:exclude_from_reports?) && a.exclude_from_reports? }
+      .reject { |a| a.respond_to?(:exclude_from_net_worth?) && a.exclude_from_net_worth? }
+      .sum(&:converted_balance)
   end
 
   def weight

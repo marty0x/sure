@@ -16,12 +16,15 @@ class BalanceSheet::AccountTotals
   private
     attr_reader :family, :user, :sync_status_monitor
 
-    AccountRow = Data.define(:account, :converted_balance, :is_syncing, :included_in_finances, :exclude_from_reports) do
+    AccountRow = Data.define(:account, :converted_balance, :is_syncing, :included_in_finances, :exclude_from_reports, :exclude_from_net_worth) do
       def syncing? = is_syncing
       def included_in_finances? = included_in_finances
       # Whether this account is excluded from financial reports, dashboards,
       # and exports.
       def exclude_from_reports? = exclude_from_reports
+      # Whether this account's balance should be ignored in net worth and
+      # balance-sheet totals while leaving the underlying account visible.
+      def exclude_from_net_worth? = exclude_from_net_worth
 
       # Allows Rails path helpers to generate URLs from the wrapper
       def to_param = account.to_param
@@ -59,7 +62,8 @@ class BalanceSheet::AccountTotals
           converted_balance: converted_balance_for(account),
           is_syncing: sync_status_monitor.account_syncing?(account),
           included_in_finances: finance_account_ids.nil? || finance_account_ids.include?(account.id),
-          exclude_from_reports: account.exclude_from_reports?
+          exclude_from_reports: account.exclude_from_reports?,
+          exclude_from_net_worth: account.exclude_from_net_worth?
         )
       end
     end

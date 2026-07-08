@@ -225,6 +225,33 @@ class BudgetTest < ActiveSupport::TestCase
     )
   end
 
+  test "transactions include accounts excluded from net worth" do
+    budget = Budget.find_or_bootstrap(@family, start_date: Date.current.beginning_of_month)
+    budget.current_user = users(:family_admin)
+
+    account = Account.create!(
+      family: @family,
+      owner: users(:family_admin),
+      accountable: Depository.new,
+      name: "Budget Activity Only",
+      status: "active",
+      currency: "USD",
+      balance: 0,
+      exclude_from_net_worth: true
+    )
+
+    entry = Entry.create!(
+      account: account,
+      entryable: Transaction.new(category: categories(:income)),
+      date: Date.current,
+      name: "Card spend",
+      amount: 100,
+      currency: "USD"
+    )
+
+    assert_includes budget.transactions.to_a, entry.entryable
+  end
+
   test "to_donut_segments_json only includes top-level budget categories" do
     family = @family
     budget = Budget.find_or_bootstrap(family, start_date: Date.current.beginning_of_month)

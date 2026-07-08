@@ -23,6 +23,7 @@ class BalanceSheet::ClassificationGroup
   def total
     accounts.select { |a| a.respond_to?(:included_in_finances?) ? a.included_in_finances? : true }
             .reject { |a| a.respond_to?(:exclude_from_reports?) && a.exclude_from_reports? }
+            .reject { |a| a.respond_to?(:exclude_from_net_worth?) && a.exclude_from_net_worth? }
             .sum(&:converted_balance)
   end
 

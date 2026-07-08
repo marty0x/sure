@@ -120,6 +120,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_230639) do
     t.string "subtype"
     t.datetime "updated_at", null: false
     t.boolean "exclude_from_reports", default: false, null: false
+    t.boolean "exclude_from_net_worth", default: false, null: false
     t.index ["accountable_id", "accountable_type"], name: "index_accounts_on_accountable_id_and_accountable_type"
     t.index ["accountable_type"], name: "index_accounts_on_accountable_type"
     t.index ["currency"], name: "index_accounts_on_currency"
@@ -127,6 +128,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_230639) do
     t.index ["family_id", "id"], name: "index_accounts_on_family_id_and_id"
     t.index ["family_id", "status", "accountable_type"], name: "index_accounts_on_family_id_status_accountable_type"
     t.index ["family_id", "status"], name: "index_accounts_on_family_id_and_status"
+    t.index ["family_id", "exclude_from_net_worth"], name: "index_accounts_on_family_id_and_exclude_from_net_worth"
     t.index ["family_id", "exclude_from_reports"], name: "index_accounts_on_family_id_and_exclude_from_reports"
     t.index ["family_id"], name: "index_accounts_on_family_id"
     t.index ["import_id"], name: "index_accounts_on_import_id"

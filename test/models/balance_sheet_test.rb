@@ -72,6 +72,18 @@ class BalanceSheetTest < ActiveSupport::TestCase
     assert depository_group.accounts.any?(&:exclude_from_reports?)
   end
 
+  test "accounts excluded from net worth do not affect balance sheet totals" do
+    create_account(balance: 1000, accountable: CreditCard.new)
+    create_account(balance: 10000, accountable: Depository.new)
+
+    excluded_asset = create_account(balance: 5000, accountable: Depository.new)
+    excluded_asset.update!(exclude_from_net_worth: true)
+
+    assert_equal 10000 - 1000, BalanceSheet.new(@family).net_worth
+    assert_equal 10000, BalanceSheet.new(@family).assets.total
+    assert_equal 1000, BalanceSheet.new(@family).liabilities.total
+  end
+
   test "net worth series preserves disabled history without carrying it into current totals" do
     period = Period.custom(start_date: Date.current - 1.day, end_date: Date.current)
     active_account = create_account(balance: 20_000, accountable: Depository.new)

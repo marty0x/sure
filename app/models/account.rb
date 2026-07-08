@@ -49,6 +49,10 @@ class Account < ApplicationRecord
   # Accounts whose data should be included in financial reports, dashboards,
   # and exports. Excludes accounts where the user has opted to suppress them.
   scope :included_in_reports, -> { where(exclude_from_reports: false) }
+  # Accounts whose balances should contribute to net worth and balance-sheet totals.
+  # This is intentionally narrower than report visibility so an account can still
+  # contribute budget activity while its balance is ignored in total-value math.
+  scope :included_in_net_worth, -> { where(exclude_from_net_worth: false) }
   scope :assets, -> { where(classification: "asset") }
   scope :liabilities, -> { where(classification: "liability") }
   scope :alphabetically, -> { order(:name) }
