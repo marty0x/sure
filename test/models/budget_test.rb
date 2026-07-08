@@ -226,12 +226,13 @@ class BudgetTest < ActiveSupport::TestCase
   end
 
   test "transactions include accounts excluded from net worth" do
+    owner = users(:empty)
     budget = Budget.find_or_bootstrap(@family, start_date: Date.current.beginning_of_month)
-    budget.current_user = users(:family_admin)
+    budget.current_user = owner
 
     account = Account.create!(
       family: @family,
-      owner: users(:family_admin),
+      owner: owner,
       accountable: Depository.new,
       name: "Budget Activity Only",
       status: "active",
