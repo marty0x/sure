@@ -2,12 +2,13 @@
 
 <div id="net-worth-chart">
   <% series = balance_sheet.net_worth_series(period: period) %>
+  <% current_net_worth = balance_sheet.net_worth_money %>
   <div class="flex justify-between gap-4 px-4">
     <div class="space-y-2">
+      <p class="text-primary -space-x-0.5 text-3xl font-medium privacy-sensitive <%= "animate-pulse" if balance_sheet.syncing? %>">
+        <%= current_net_worth.format %>
+      </p>
       <% if series.trend.present? %>
-        <p class="text-primary -space-x-0.5 text-3xl font-medium privacy-sensitive <%= "animate-pulse" if balance_sheet.syncing? %>">
-          <%= series.trend.current.format %>
-        </p>
         <%= render partial: "shared/trend_change", locals: { trend: series.trend, comparison_label: period.comparison_label } %>
       <% else %>
         <p class="text-sm text-secondary"><%= t(".data_not_available") %></p>
