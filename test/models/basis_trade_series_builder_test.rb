@@ -46,6 +46,7 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
     payload = BasisTradeSeriesBuilder.new(family: @family).payload
 
     assert_equal [ "2026-06-20", "2026-06-21" ], payload[:points].map { |point| point[:date] }
+    assert_equal "2026-06-20T12:00:00Z", payload[:points].first[:recorded_at]
     assert_equal 1801.0, payload[:points].first[:combined]
     assert_equal 1865.0, payload[:points].last[:combined]
     assert_equal 285.0, payload[:points].first[:lighter_account_value]

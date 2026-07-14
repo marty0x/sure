@@ -60,6 +60,7 @@ class BasisTradeSeriesBuilder
         date = snapshot.recorded_at.to_date
         leg_values(snapshot).merge(
           date: date.iso8601,
+          recorded_at: snapshot.recorded_at.iso8601,
           date_formatted: I18n.l(date, format: :long)
         )
       end

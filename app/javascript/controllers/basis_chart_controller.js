@@ -260,14 +260,31 @@ export default class extends Controller {
     ].filter(Boolean);
 
     return `
-      <div class="${CHART_TOOLTIP_CONTEXT_CLASSES}">${point.date_formatted || point.date}</div>
+      <div class="${CHART_TOOLTIP_CONTEXT_CLASSES}">${this._formatShortDateTime(point)}</div>
       <div class="space-y-0.5">
-        ${rows.join("")}
-        <div class="flex items-center justify-between gap-4 pt-1 mt-1 border-t border-secondary">
+        <div class="flex items-center justify-between gap-4 pb-1 mb-1 border-b border-secondary">
           <span class="text-primary font-medium">${labels.combined || "Account value"}</span>
           <span class="${CHART_TOOLTIP_VALUE_CLASSES} text-primary">${this._formatCurrency(combinedValue)}</span>
         </div>
+        ${rows.join("")}
       </div>`;
+  }
+
+  _formatShortDateTime(point) {
+    if (point.recorded_at) {
+      try {
+        return new Intl.DateTimeFormat(this.localeValue, {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(new Date(point.recorded_at));
+      } catch (_e) {
+        // fall through to existing labels below
+      }
+    }
+
+    return point.date_formatted || point.date;
   }
 
   _parseLocalDate(s) {
