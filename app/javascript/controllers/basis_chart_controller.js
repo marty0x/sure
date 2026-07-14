@@ -21,24 +21,46 @@ export default class extends Controller {
   };
 
   connect() {
+    this._resize = this._draw.bind(this);
+    window.addEventListener("resize", this._resize);
+
     if (typeof ResizeObserver !== "undefined") {
       this._resizeObserver = new ResizeObserver(() => this._draw());
       this._resizeObserver.observe(this.chartTarget);
+    } else {
+      this._draw();
     }
 
     if (typeof MutationObserver !== "undefined") {
       this._themeObserver = new MutationObserver((mutations) => {
         if (mutations.some((m) => m.attributeName === "data-theme")) this._draw();
       });
-      this._themeObserver.observe(document.documentElement, { attributes: true });
+      this._themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
     }
+
+    // Turbo morphs can leave the controller connected while wiping the chart
+    // target's children. When that happens ResizeObserver may not fire because
+    // the box size did not change, so explicitly redraw after Turbo renders.
+    this._onTurboRender = () => {
+      if (!this.chartTarget.querySelector("svg")) this._draw();
+    };
+    document.addEventListener("turbo:render", this._onTurboRender);
+    document.addEventListener("turbo:frame-load", this._onTurboRender);
 
     this._draw();
   }
 
   disconnect() {
+    window.removeEventListener("resize", this._resize);
     this._resizeObserver?.disconnect();
     this._themeObserver?.disconnect();
+    if (this._onTurboRender) {
+      document.removeEventListener("turbo:render", this._onTurboRender);
+      document.removeEventListener("turbo:frame-load", this._onTurboRender);
+    }
     this._tooltip?.remove();
   }
 
