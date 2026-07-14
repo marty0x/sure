@@ -207,6 +207,8 @@ export default class extends Controller {
       this._tooltip = document.createElement("div");
       this._tooltip.className = CHART_TOOLTIP_CLASSES;
       this._tooltip.style.display = "none";
+    }
+    if (!this.chartTarget.contains(this._tooltip)) {
       this.chartTarget.appendChild(this._tooltip);
     }
     const tooltip = this._tooltip;
