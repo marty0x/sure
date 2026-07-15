@@ -110,7 +110,9 @@
 
             <% if @basis_apy[:trend].present? %>
               <div class="flex items-center gap-2 flex-shrink-0">
-                <div class="w-20 h-8">
+                <%# time_series_chart_controller skips drawing entirely below 50x50px, so this
+                    can't be as small as the tiny account-row sparklines elsewhere in the app. %>
+                <div class="w-24 h-14">
                   <%= render "shared/sparkline", id: "basis-apy-sparkline", series: @basis_apy[:trend] %>
                 </div>
                 <p style="color: <%= @basis_apy[:trend].trend.color %>" class="font-mono text-xs font-medium tabular-nums">
