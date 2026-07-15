@@ -97,6 +97,31 @@
       data-basis-chart-locale-value="<%= I18n.locale %>"
       class="space-y-6">
 
+      <% if @basis_apy&.dig(:current) %>
+        <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".apy.heading") %></p>
+              <p class="text-3xl font-medium tabular-nums mt-2 privacy-sensitive <%= @basis_apy[:current] >= 0 ? "text-success" : "text-destructive" %>">
+                <%= number_to_percentage(@basis_apy[:current], precision: 2) %>
+              </p>
+              <p class="text-xs text-secondary mt-1"><%= t(".apy.since", date: I18n.l(@basis_apy[:start_date], format: :long)) %></p>
+            </div>
+
+            <% if @basis_apy[:trend].present? %>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="w-20 h-8">
+                  <%= render "shared/sparkline", id: "basis-apy-sparkline", series: @basis_apy[:trend] %>
+                </div>
+                <p style="color: <%= @basis_apy[:trend].trend.color %>" class="font-mono text-xs font-medium tabular-nums">
+                  <%= @basis_apy[:trend].trend.percent_formatted %>
+                </p>
+              </div>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+
       <%# Main chart card %>
       <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
         <p class="text-[11px] font-medium uppercase tracking-wide text-secondary mb-4"><%= t(".chart.heading") %></p>

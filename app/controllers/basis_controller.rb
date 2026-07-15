@@ -19,6 +19,7 @@ class BasisController < ApplicationController
     ).payload
 
     @has_snapshots = @basis_chart_payload[:points].any?
+    @basis_apy = BasisTrade::ApyCalculator.new(points: @basis_chart_payload[:points]).summary if @has_snapshots
     @basis_live_snapshot = live_snapshot_result.snapshot
     @basis_live_error = live_snapshot_result.error
     @basis_sources_configured = live_snapshot_result.configured

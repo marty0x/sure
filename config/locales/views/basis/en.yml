@@ -35,6 +35,9 @@ en:
         short: Perps Short
         funding: Funding
         rewards: Rewards
+      apy:
+        heading: Projected APY
+        since: "Since %{date}"
       chart:
         heading: Basis account value
         empty: No data in this range.
