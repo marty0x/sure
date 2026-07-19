@@ -9,15 +9,15 @@ en:
         body: Once basis trade snapshots are recorded, your combined leg equity curve will appear here.
       live:
         heading: Live balances
-        subtitle: Current values fetched directly from your configured Optimism wallet and Lighter address.
+        subtitle: Current values fetched directly from your configured Optimism wallet and Perps address.
         error: "Live balance refresh failed: %{message}"
         spot_breakdown_title: Spot wallet balances
         spot_breakdown_empty: No configured spot-leg balances were found.
-        lighter_breakdown_title: Lighter account values
-        lighter_breakdown_empty: No Lighter accounts were found for this address.
+        lighter_breakdown_title: Perps account values
+        lighter_breakdown_empty: No Perps accounts were found for this address.
         lighter_account: "Account %{index}"
         preferences_link: Settings → Preferences
-        not_configured_html: Configure your Ether.fi and Lighter addresses in %{link} to enable direct live balance checks.
+        not_configured_html: Configure your Ether.fi and Perps addresses in %{link} to enable direct live balance checks.
       ranges:
         30d: 30D
         90d: 90D
@@ -47,7 +47,7 @@ en:
         note: Minor wiggles are expected from hedge mismatch, funding timing, and reward claim timing.
       tooltip:
         spot: weETH spot
-        lighter_account_value: Lighter account value
+        lighter_account_value: Perps account value
         short: Perps short
         funding: Funding
         rewards: Rewards

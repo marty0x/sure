@@ -77,7 +77,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/Live balances/i, response.body)
     assert_match(/Spot wallet balances/i, response.body)
-    assert_match(/Lighter account values/i, response.body)
+    assert_match(/Perps account values/i, response.body)
     assert_match(/weETH/i, response.body)
     assert_match(/Account 730104/i, response.body)
     assert_match(/\$10,048\.75/, response.body)

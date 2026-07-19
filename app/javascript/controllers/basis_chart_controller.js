@@ -9,8 +9,8 @@ import {
 // Dedicated controller for the Basis page. Draws a single historical account-
 // value line from server-computed points. The tooltip still exposes the stored
 // basis legs for attribution, while the line itself uses the server-computed
-// combined account-value series for each snapshot (typically spot + Lighter
-// account value + funding + rewards when Lighter account value is present).
+// combined account-value series for each snapshot (typically spot + Perps
+// account value + funding + rewards when Perps account value is present).
 export default class extends Controller {
   static targets = ["chart"];
   static values = {
@@ -276,7 +276,7 @@ export default class extends Controller {
     const rows = [
       row(labels.spot || "weETH spot", point.spot || 0),
       point.lighter_account_value != null
-        ? row(labels.lighter_account_value || "Lighter account value", point.lighter_account_value)
+        ? row(labels.lighter_account_value || "Perps account value", point.lighter_account_value)
         : "",
       row(labels.short || "Perps short", point.short || 0),
       row(labels.funding || "Funding", point.funding || 0),
