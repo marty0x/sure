@@ -1,6 +1,7 @@
-# Compares the current ETH/USD price against its trailing 100-day simple
-# moving average, to signal whether Ether.fi rewards should be redeemed in
-# weETH (price below its SMA) or kept in USDC (price above its SMA).
+# Compares the current ETH/USD price against its trailing N-day simple
+# moving average (WINDOW_DAYS), to signal whether Ether.fi rewards should be
+# redeemed in weETH (price below its SMA) or kept in USDC (price above its
+# SMA).
 #
 # Calls Provider::BinancePublic directly rather than going through the
 # Security/Security::Price provider-registry machinery: that path is gated by
@@ -9,13 +10,14 @@
 # a crypto provider into their securities settings.
 module BasisTrade
   class EthSmaIndicator
-    WINDOW_DAYS = 100
+    WINDOW_DAYS = 200
     TICKER = "ETHUSD"
-    CACHE_KEY = "basis_trade/eth_sma_indicator"
     CACHE_TTL = 1.hour
 
     def summary
-      Rails.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { compute_summary }
+      # Keyed by WINDOW_DAYS so changing the window can't serve a stale value
+      # computed under a different window out of the (Redis-backed) cache.
+      Rails.cache.fetch("basis_trade/eth_sma_indicator:#{WINDOW_DAYS}d", expires_in: CACHE_TTL) { compute_summary }
     end
 
     private

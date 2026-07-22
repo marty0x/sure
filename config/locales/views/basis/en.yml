@@ -39,7 +39,7 @@ en:
         heading: Projected APY
         since: "Since %{date}"
       eth_sma:
-        heading: ETH vs 100D SMA
+        heading: ETH vs 200D SMA
         above: Above
         below: Below
         price_label: "%{price} vs %{sma} SMA"
