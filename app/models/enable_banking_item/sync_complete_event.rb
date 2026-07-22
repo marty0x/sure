@@ -8,11 +8,6 @@ class EnableBankingItem::SyncCompleteEvent
   def broadcast
     enable_banking_item.reload
 
-    # Update UI with latest account data
-    enable_banking_item.accounts.each do |account|
-      account.broadcast_sync_complete
-    end
-
     family = enable_banking_item.family
     return unless family
 
@@ -33,7 +28,8 @@ class EnableBankingItem::SyncCompleteEvent
       locals: { enable_banking_items: enable_banking_items, family: family }
     )
 
-    # Let family handle sync notifications
-    family.broadcast_sync_complete
+    # Let family handle sync notifications (unless this is nested under a larger
+    # family sync, whose own finalization will already broadcast once)
+    family.broadcast_sync_complete unless enable_banking_item.part_of_larger_sync?
   end
 end

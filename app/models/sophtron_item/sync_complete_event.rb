@@ -6,11 +6,6 @@ class SophtronItem::SyncCompleteEvent
   end
 
   def broadcast
-    # Update UI with latest account data
-    sophtron_item.accounts.each do |account|
-      account.broadcast_sync_complete
-    end
-
     # Update the Sophtron item view
     sophtron_item.broadcast_replace_to(
       sophtron_item.family,
@@ -19,7 +14,8 @@ class SophtronItem::SyncCompleteEvent
       locals: { sophtron_item: sophtron_item }
     )
 
-    # Let family handle sync notifications
-    sophtron_item.family.broadcast_sync_complete
+    # Let family handle sync notifications (unless this is nested under a larger
+    # family sync, whose own finalization will already broadcast once)
+    sophtron_item.family.broadcast_sync_complete unless sophtron_item.part_of_larger_sync?
   end
 end

@@ -10,11 +10,6 @@ class CoinbaseItem::SyncCompleteEvent
 
   # Broadcasts sync completion to update UI components.
   def broadcast
-    # Update UI with latest account data
-    coinbase_item.accounts.each do |account|
-      account.broadcast_sync_complete
-    end
-
     # Update the Coinbase item view
     coinbase_item.broadcast_replace_to(
       coinbase_item.family,
@@ -23,7 +18,8 @@ class CoinbaseItem::SyncCompleteEvent
       locals: { coinbase_item: coinbase_item }
     )
 
-    # Let family handle sync notifications
-    coinbase_item.family.broadcast_sync_complete
+    # Let family handle sync notifications (unless this is nested under a larger
+    # family sync, whose own finalization will already broadcast once)
+    coinbase_item.family.broadcast_sync_complete unless coinbase_item.part_of_larger_sync?
   end
 end

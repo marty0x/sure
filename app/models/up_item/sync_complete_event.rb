@@ -6,10 +6,8 @@ class UpItem::SyncCompleteEvent
     @up_item = up_item
   end
 
-  # Broadcast sync-complete Turbo updates for the item, its accounts, and family.
+  # Broadcast sync-complete Turbo updates for the item and family.
   def broadcast
-    up_item.accounts.each(&:broadcast_sync_complete)
-
     up_item.broadcast_replace_to(
       up_item.family,
       target: "up_item_#{up_item.id}",
@@ -17,6 +15,6 @@ class UpItem::SyncCompleteEvent
       locals: { up_item: up_item }
     )
 
-    up_item.family.broadcast_sync_complete
+    up_item.family.broadcast_sync_complete unless up_item.part_of_larger_sync?
   end
 end

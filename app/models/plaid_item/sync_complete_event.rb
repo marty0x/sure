@@ -6,10 +6,6 @@ class PlaidItem::SyncCompleteEvent
   end
 
   def broadcast
-    plaid_item.accounts.each do |account|
-      account.broadcast_sync_complete
-    end
-
     plaid_item.broadcast_replace_to(
       plaid_item.family,
       target: "plaid_item_#{plaid_item.id}",
@@ -17,6 +13,6 @@ class PlaidItem::SyncCompleteEvent
       locals: { plaid_item: plaid_item }
     )
 
-    plaid_item.family.broadcast_sync_complete
+    plaid_item.family.broadcast_sync_complete unless plaid_item.part_of_larger_sync?
   end
 end

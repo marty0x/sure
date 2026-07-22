@@ -8,10 +8,6 @@ class WiseItem::SyncCompleteEvent
   end
 
   def broadcast
-    wise_item.accounts.each do |account|
-      account.broadcast_sync_complete
-    end
-
     wise_item.broadcast_replace_to(
       wise_item.family,
       target: dom_id(wise_item),
@@ -19,7 +15,7 @@ class WiseItem::SyncCompleteEvent
       locals: { wise_item: wise_item }
     )
 
-    wise_item.family.broadcast_sync_complete
+    wise_item.family.broadcast_sync_complete unless wise_item.part_of_larger_sync?
   end
 
   private

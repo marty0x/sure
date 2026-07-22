@@ -97,31 +97,50 @@
       data-basis-chart-locale-value="<%= I18n.locale %>"
       class="space-y-6">
 
-      <% if @basis_apy&.dig(:current) %>
-        <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".apy.heading") %></p>
-              <p class="text-3xl font-medium tabular-nums mt-2 privacy-sensitive <%= @basis_apy[:current] >= 0 ? "text-success" : "text-destructive" %>">
-                <%= number_to_percentage(@basis_apy[:current], precision: 2) %>
-              </p>
-              <p class="text-xs text-secondary mt-1"><%= t(".apy.since", date: I18n.l(@basis_apy[:start_date], format: :long)) %></p>
-            </div>
-
-            <% if @basis_apy[:trend].present? %>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <%# time_series_chart_controller skips drawing entirely below 50x50px, so this
-                    can't be as small as the tiny account-row sparklines elsewhere in the app. %>
-                <div class="w-24 h-14">
-                  <%= render "shared/sparkline", id: "basis-apy-sparkline", series: @basis_apy[:trend] %>
+      <% if @basis_apy&.dig(:current) || @eth_sma.present? %>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <% if @basis_apy&.dig(:current) %>
+            <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".apy.heading") %></p>
+                  <p class="text-3xl font-medium tabular-nums mt-2 privacy-sensitive <%= @basis_apy[:current] >= 0 ? "text-success" : "text-destructive" %>">
+                    <%= number_to_percentage(@basis_apy[:current], precision: 2) %>
+                  </p>
+                  <p class="text-xs text-secondary mt-1"><%= t(".apy.since", date: I18n.l(@basis_apy[:start_date], format: :long)) %></p>
                 </div>
-                <p style="color: <%= @basis_apy[:trend].trend.color %>" class="font-mono text-xs font-medium tabular-nums">
-                  <%= @basis_apy[:trend].trend.percent_formatted %>
-                </p>
+
+                <% if @basis_apy[:trend].present? %>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <%# time_series_chart_controller skips drawing entirely below 50x50px, so this
+                        can't be as small as the tiny account-row sparklines elsewhere in the app. %>
+                    <div class="w-24 h-14">
+                      <%= render "shared/sparkline", id: "basis-apy-sparkline", series: @basis_apy[:trend] %>
+                    </div>
+                    <p style="color: <%= @basis_apy[:trend].trend.color %>" class="font-mono text-xs font-medium tabular-nums">
+                      <%= @basis_apy[:trend].trend.percent_formatted %>
+                    </p>
+                  </div>
+                <% end %>
               </div>
-            <% end %>
-          </div>
-        </section>
+            </section>
+          <% end %>
+
+          <% if @eth_sma.present? %>
+            <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
+              <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".eth_sma.heading") %></p>
+              <p style="color: <%= @eth_sma[:trend].color %>" class="text-3xl font-medium tabular-nums mt-2">
+                <%= @eth_sma[:above] ? t(".eth_sma.above") : t(".eth_sma.below") %>
+              </p>
+              <p class="text-xs text-secondary mt-1 tabular-nums privacy-sensitive">
+                <%= t(".eth_sma.price_label", price: format_money(Money.new(@eth_sma[:current_price], "USD")), sma: format_money(Money.new(@eth_sma[:sma], "USD"))) %>
+              </p>
+              <p class="text-xs text-secondary mt-1">
+                <%= @eth_sma[:above] ? t(".eth_sma.hint_above") : t(".eth_sma.hint_below") %>
+              </p>
+            </section>
+          <% end %>
+        </div>
       <% end %>
 
       <%# Main chart card %>

@@ -38,6 +38,13 @@ en:
       apy:
         heading: Projected APY
         since: "Since %{date}"
+      eth_sma:
+        heading: ETH vs 100D SMA
+        above: Above
+        below: Below
+        price_label: "%{price} vs %{sma} SMA"
+        hint_above: Keep rewards in USDC
+        hint_below: Redeem rewards in weETH
       chart:
         heading: Basis account value
         empty: No data in this range.

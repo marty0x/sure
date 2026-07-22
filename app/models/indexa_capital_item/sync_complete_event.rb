@@ -6,10 +6,6 @@ class IndexaCapitalItem::SyncCompleteEvent
   end
 
   def broadcast
-    indexa_capital_item.accounts.each do |account|
-      account.broadcast_sync_complete
-    end
-
     indexa_capital_item.broadcast_replace_to(
       indexa_capital_item.family,
       target: "indexa_capital_item_#{indexa_capital_item.id}",
@@ -17,6 +13,6 @@ class IndexaCapitalItem::SyncCompleteEvent
       locals: { indexa_capital_item: indexa_capital_item }
     )
 
-    indexa_capital_item.family.broadcast_sync_complete
+    indexa_capital_item.family.broadcast_sync_complete unless indexa_capital_item.part_of_larger_sync?
   end
 end

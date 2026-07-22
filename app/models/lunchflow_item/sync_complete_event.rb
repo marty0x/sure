@@ -6,11 +6,6 @@ class LunchflowItem::SyncCompleteEvent
   end
 
   def broadcast
-    # Update UI with latest account data
-    lunchflow_item.accounts.each do |account|
-      account.broadcast_sync_complete
-    end
-
     # Update the Lunchflow item view
     lunchflow_item.broadcast_replace_to(
       lunchflow_item.family,
@@ -19,7 +14,8 @@ class LunchflowItem::SyncCompleteEvent
       locals: { lunchflow_item: lunchflow_item }
     )
 
-    # Let family handle sync notifications
-    lunchflow_item.family.broadcast_sync_complete
+    # Let family handle sync notifications (unless this is nested under a larger
+    # family sync, whose own finalization will already broadcast once)
+    lunchflow_item.family.broadcast_sync_complete unless lunchflow_item.part_of_larger_sync?
   end
 end

@@ -67,6 +67,16 @@ module Syncable
     latest_sync&.created_at
   end
 
+  # True if the most recent sync for this syncable was scheduled as a child of a
+  # larger parent sync (e.g. a family-wide sync). Nested syncables use this to skip
+  # broadcasting family-level updates themselves and defer to the parent sync's own
+  # finalization, which already broadcasts exactly once when it completes — this
+  # avoids duplicate "New data available" toasts/refreshes firing at staggered times
+  # as each child (account, item) finalizes independently.
+  def part_of_larger_sync?
+    latest_sync&.parent_id.present?
+  end
+
   private
     def latest_sync
       syncs.ordered.first
