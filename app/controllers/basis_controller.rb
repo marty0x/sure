@@ -20,6 +20,12 @@ class BasisController < ApplicationController
 
     @has_snapshots = @basis_chart_payload[:points].any?
     @basis_apy = BasisTrade::ApyCalculator.new(points: @basis_chart_payload[:points]).summary if @has_snapshots
+
+    if @basis_apy&.dig(:current)
+      @borrow_cost = BasisTrade::BorrowCostCalculator.new(initial_amount: @basis_apy[:initial_amount]).summary
+      @basis_apy[:current] = (@basis_apy[:current] - @borrow_cost[:percent]).round(2) if @borrow_cost
+    end
+
     @eth_sma = BasisTrade::EthSmaIndicator.new.summary
     @basis_live_snapshot = live_snapshot_result.snapshot
     @basis_live_error = live_snapshot_result.error

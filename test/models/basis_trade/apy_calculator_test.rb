@@ -12,6 +12,7 @@ class BasisTrade::ApyCalculatorTest < ActiveSupport::TestCase
     # (1010/1000 - 1) * (365/10) * 100 = 36.5%
     assert_equal 36.5, summary[:current]
     assert_equal Date.new(2026, 6, 15), summary[:start_date]
+    assert_equal 1000.0, summary[:initial_amount]
   end
 
   test "returns nil current apy when fewer than 2 points" do

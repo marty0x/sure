@@ -98,7 +98,7 @@
       class="space-y-6">
 
       <% if @basis_apy&.dig(:current) || @eth_sma.present? %>
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-3">
           <% if @basis_apy&.dig(:current) %>
             <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
               <div class="flex items-center justify-between gap-4">
@@ -123,6 +123,24 @@
                   </div>
                 <% end %>
               </div>
+            </section>
+          <% end %>
+
+          <% if @borrow_cost.present? %>
+            <section class="bg-container rounded-xl shadow-border-xs px-5 py-5">
+              <button
+                type="button"
+                data-controller="basis-borrow-cost"
+                data-action="click->basis-borrow-cost#toggle"
+                class="w-full text-left cursor-pointer"
+                title="<%= t(".borrow_cost.tap_hint") %>">
+                <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".borrow_cost.heading") %></p>
+                <p class="text-3xl font-medium tabular-nums mt-2 text-destructive privacy-sensitive">
+                  <span data-basis-borrow-cost-target="dollar">-<%= format_money(Money.new(@borrow_cost[:dollars], @basis_chart_payload[:currency])) %></span>
+                  <span data-basis-borrow-cost-target="percent" class="hidden">-<%= number_to_percentage(@borrow_cost[:percent], precision: 2) %></span>
+                </p>
+                <p class="text-xs text-secondary mt-1"><%= t(".borrow_cost.hint") %></p>
+              </button>
             </section>
           <% end %>
 

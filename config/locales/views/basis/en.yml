@@ -38,6 +38,10 @@ en:
       apy:
         heading: Projected APY
         since: "Since %{date}"
+      borrow_cost:
+        heading: Borrow Cost
+        hint: Est. annualized cost of the Ether.fi Credit borrow, already deducted above
+        tap_hint: Tap to toggle $ / %
       eth_sma:
         heading: ETH vs 200D SMA
         above: Above

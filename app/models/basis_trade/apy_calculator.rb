@@ -15,6 +15,7 @@ module BasisTrade
       {
         current: current_apy,
         start_date: points.first && Date.parse(points.first[:date]),
+        initial_amount: points.first && points.first[:combined].to_f,
         trend: trend_series
       }
     end

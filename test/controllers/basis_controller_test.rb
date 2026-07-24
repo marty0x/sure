@@ -162,4 +162,34 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/basis-toggle-spot/, response.body)
     assert_no_match(/basis_leg_spot/, response.body)
   end
+
+  test "renders borrow cost card and deducts it from the projected APY" do
+    BasisTradeSnapshot.create!(
+      family: @user.family,
+      recorded_at: Time.zone.parse("2026-06-15 12:00:00"),
+      spot_leg_cents: 1_000_000,
+      short_leg_cents: 0,
+      funding_accrued_cents: 0,
+      rewards_accrued_cents: 0,
+      currency: "USD"
+    )
+    BasisTradeSnapshot.create!(
+      family: @user.family,
+      recorded_at: Time.zone.parse("2026-06-25 12:00:00"),
+      spot_leg_cents: 1_010_000,
+      short_leg_cents: 0,
+      funding_accrued_cents: 0,
+      rewards_accrued_cents: 0,
+      currency: "USD"
+    )
+
+    get basis_path
+
+    assert_response :success
+    assert_match(/Borrow Cost/i, response.body)
+    # Gross APY is 36.5%; borrow cost is (1/3) * 1000 * 2% = $6.67 = 0.67% drag.
+    assert_match(/35\.83%/, response.body)
+    assert_match(/-\$6\.67/, response.body)
+    assert_match(/-0\.67%/, response.body)
+  end
 end
