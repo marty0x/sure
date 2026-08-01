@@ -70,13 +70,15 @@ class InsightsHelperTest < ActionView::TestCase
   end
 
   test "meta line labels a forward-looking window as next N days" do
-    insight = build_insight(
-      "cash_flow_warning",
-      period_start: Date.current,
-      period_end: Date.current + 30
-    )
+    travel_to Time.zone.local(2026, 8, 1) do
+      insight = build_insight(
+        "cash_flow_warning",
+        period_start: Date.current,
+        period_end: Date.current + 30
+      )
 
-    assert_equal "Cash flow · Next 30 days", insight_meta_line(insight)
+      assert_equal "Cash flow · Next 30 days", insight_meta_line(insight)
+    end
   end
 
   test "meta line falls back to the subject when there is no period" do
