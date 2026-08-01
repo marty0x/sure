@@ -141,14 +141,12 @@ module InsightsHelper
         return facts["account"] || facts["name"]
       end
 
-      if start_date == start_date.beginning_of_month && end_date == start_date.end_of_month
-        format = start_date.year == Date.current.year ? "%B" : "%B %Y"
-        return I18n.l(start_date, format: format)
-      end
-
       days = (end_date - start_date).to_i
       if start_date >= Date.current - 1
         t("insights.meta.next_n_days", count: days)
+      elsif start_date == start_date.beginning_of_month && end_date == start_date.end_of_month
+        format = start_date.year == Date.current.year ? "%B" : "%B %Y"
+        I18n.l(start_date, format: format)
       elsif end_date >= Date.current - 1
         t("insights.meta.last_n_days", count: days)
       else
