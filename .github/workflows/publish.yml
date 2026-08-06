@@ -248,6 +248,22 @@ jobs:
             sleep ${delay}
           done
 
+      - name: Summarize production handoff
+        if: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          IMAGE_REF: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          {
+            echo '## Production image ready'
+            echo
+            echo "\`$IMAGE_REF\`"
+            echo
+            echo 'Deploy it from **marty0x/surefin-infra → Actions → Release Sure** using:'
+            echo
+            echo "\`$IMAGE_TAG\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
 
   helm:
     name: Package Helm chart
