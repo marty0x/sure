@@ -120,7 +120,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_111051) do
     t.string "subtype"
     t.datetime "updated_at", null: false
     t.boolean "exclude_from_reports", default: false, null: false
-    t.boolean "exclude_from_net_worth", default: false, null: false    t.integer "account_providers_count", default: 0, null: false
+    t.boolean "exclude_from_net_worth", default: false, null: false
+    t.integer "account_providers_count", default: 0, null: false
     t.boolean "enable_category_matcher", default: true, null: false
     t.index ["accountable_id", "accountable_type"], name: "index_accounts_on_accountable_id_and_accountable_type"
     t.index ["accountable_type"], name: "index_accounts_on_accountable_type"
@@ -411,7 +412,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_111051) do
     t.string "lucide_icon", default: "shapes", null: false
     t.string "name", null: false
     t.uuid "parent_id"
-    t.datetime "updated_at", null: false    t.datetime "last_used_at"
+    t.datetime "updated_at", null: false
+    t.datetime "last_used_at"
     t.index ["family_id"], name: "index_categories_on_family_id"
     t.index ["family_id", "last_used_at"], name: "index_categories_on_family_id_and_last_used_at"
   end
@@ -2060,7 +2062,8 @@ t.datetime "updated_at", null: false
     t.datetime "syncing_at"
     t.datetime "updated_at", null: false
     t.date "window_end_date"
-    t.date "window_start_date"    t.datetime "cancel_requested_at"
+    t.date "window_start_date"
+    t.datetime "cancel_requested_at"
     t.index ["parent_id"], name: "index_syncs_on_parent_id"
     t.index ["status"], name: "index_syncs_on_status"
     t.index ["syncable_type", "syncable_id", "created_at", "id"], name: "index_syncs_on_syncable_and_created_at_and_id", order: { created_at: :desc, id: :desc }
