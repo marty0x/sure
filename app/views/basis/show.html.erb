@@ -136,8 +136,8 @@
                 title="<%= t(".borrow_cost.tap_hint") %>">
                 <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".borrow_cost.heading") %></p>
                 <p class="text-3xl font-medium tabular-nums mt-2 text-destructive privacy-sensitive">
-                  <span data-basis-borrow-cost-target="dollar">-<%= format_money(Money.new(@borrow_cost[:dollars], @basis_chart_payload[:currency])) %></span>
-                  <span data-basis-borrow-cost-target="percent" class="hidden">-<%= number_to_percentage(@borrow_cost[:percent], precision: 2) %></span>
+                  <span data-basis-borrow-cost-target="dollar" class="hidden">-<%= format_money(Money.new(@borrow_cost[:dollars], @basis_chart_payload[:currency])) %></span>
+                  <span data-basis-borrow-cost-target="percent">-<%= number_to_percentage(@borrow_cost[:percent], precision: 2) %></span>
                 </p>
                 <p class="text-xs text-secondary mt-1"><%= t(".borrow_cost.hint") %></p>
               </button>
