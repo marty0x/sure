@@ -121,7 +121,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_111051) do
     t.datetime "updated_at", null: false
     t.boolean "exclude_from_reports", default: false, null: false
     t.boolean "exclude_from_net_worth", default: false, null: false
-    t.integer "account_providers_count", default: 0, null: false
     t.boolean "enable_category_matcher", default: true, null: false
     t.index ["accountable_id", "accountable_type"], name: "index_accounts_on_accountable_id_and_accountable_type"
     t.index ["accountable_type"], name: "index_accounts_on_accountable_type"
@@ -600,9 +599,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_111051) do
     t.jsonb "raw_transactions_payload"
     t.string "uid"
     t.datetime "updated_at", null: false
-    t.string "product"
-    t.decimal "credit_limit", precision: 19, scale: 4
-    t.jsonb "identification_hashes", default: []
     t.boolean "treat_balance_as_available_credit", default: false, null: false
     t.index ["account_id"], name: "index_enable_banking_accounts_on_account_id"
     t.index ["enable_banking_item_id"], name: "index_enable_banking_accounts_on_enable_banking_item_id"
