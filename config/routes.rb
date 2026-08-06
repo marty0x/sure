@@ -1,7 +1,5 @@
-unless Rails.env.production?
-  require "sidekiq/web"
-  require "sidekiq/cron/web"
-end
+require "sidekiq/web"
+require "sidekiq/cron/web"
 
 Rails.application.routes.draw do
   resources :questrade_items, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
@@ -129,16 +127,15 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :snaptrade_items, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
+  resources :snaptrade_items, only: [ :index, :show, :destroy ] do
     collection do
       get :preload_accounts
       get :select_accounts
-      post :link_accounts
       get :select_existing_account
       post :link_existing_account
       get :callback
-      get :oauth_connect
-      post :start_oauth_connect
+      get :oauth_authorize
+      get :oauth_callback
     end
 
     member do
@@ -147,14 +144,25 @@ Rails.application.routes.draw do
       get :setup_accounts
       post :complete_account_setup
       get :connections
-      post :start_oauth_device_flow
-      post :complete_oauth_device_flow
       delete :delete_connection
-      delete :delete_orphaned_user
     end
   end
 
   resources :ibkr_items, only: [ :create, :update, :destroy ] do
+    collection do
+      get :select_accounts
+      get :select_existing_account
+      post :link_existing_account
+    end
+
+    member do
+      post :sync
+      get :setup_accounts
+      post :complete_account_setup
+    end
+  end
+
+  resources :trading212_items, only: [ :create, :update, :destroy ] do
     collection do
       get :select_accounts
       get :select_existing_account
@@ -199,7 +207,9 @@ Rails.application.routes.draw do
   get ".well-known/oauth-protected-resource", to: "oauth_metadata#protected_resource"
   get ".well-known/oauth-authorization-server", to: "oauth_metadata#authorization_server"
   post "register", to: "oauth_registration#create"
-  use_doorkeeper
+  use_doorkeeper do |mapping|
+    mapping.controllers authorizations: "oauth/authorizations"
+  end
   # MFA routes
   resource :mfa, controller: "mfa", only: [ :new, :create ] do
     get :verify
@@ -216,8 +226,18 @@ Rails.application.routes.draw do
     mount Rswag::Ui::Engine => "/api-docs"
   end
 
-  # Uses basic auth - see config/initializers/sidekiq.rb
-  mount Sidekiq::Web => "/sidekiq" unless Rails.env.production?
+  # Break-glass queue tooling. Development mounts it open for convenience;
+  # everywhere else (production, staging, test) the route only exists for a
+  # signed-in super admin — see app/constraints/super_admin_constraint.rb.
+  # An optional basic-auth second layer can be enabled via SIDEKIQ_WEB_USERNAME
+  # and SIDEKIQ_WEB_PASSWORD (config/initializers/sidekiq.rb).
+  if Rails.env.development?
+    mount Sidekiq::Web => "/sidekiq"
+  else
+    constraints SuperAdminConstraint.new do
+      mount Sidekiq::Web => "/sidekiq"
+    end
+  end
 
   # AI chats
   resources :chats do
@@ -237,6 +257,13 @@ Rails.application.routes.draw do
   resources :family_exports, only: %i[new create index destroy] do
     member do
       get :download
+      post :cancel
+    end
+  end
+
+  resources :syncs, only: [] do
+    member do
+      post :cancel
     end
   end
 
@@ -250,6 +277,11 @@ Rails.application.routes.draw do
 
   resource :registration, only: %i[new create]
   resources :sessions, only: %i[index new create destroy]
+  # Desktop app SSO: opens the flow in the system browser (so passkeys/WebAuthn
+  # work), then hands a single-use, PKCE-bound code back via the sure:// scheme
+  # which the desktop webview exchanges for a normal web session.
+  post "/sessions/desktop_exchange", to: "sessions#desktop_exchange", as: :desktop_sso_exchange
+  get "/auth/desktop/:provider", to: "sessions#desktop_sso_start"
   get "/auth/mobile/:provider", to: "sessions#mobile_sso_start"
   match "/auth/:provider/callback", to: "sessions#openid_connect", via: %i[get post]
   match "/auth/failure", to: "sessions#failure", via: %i[get post]
@@ -284,6 +316,9 @@ Rails.application.routes.draw do
     resource :preferences, only: %i[show update]
     resource :appearance, only: %i[show update]
     resource :debug, only: :show
+    resource :background_jobs, controller: "background_jobs", only: :show do
+      post :cancel
+    end
     resource :hosting, only: %i[show update] do
       delete :clear_cache, on: :collection
       delete :disconnect_external_assistant, on: :collection
@@ -344,6 +379,9 @@ Rails.application.routes.draw do
     get :picker, on: :collection
   end
 
+  # Hub page fronting budgets + goals under a single "Plan" nav entry.
+  resource :plan, only: :show
+
   resources :budgets, only: %i[index show edit update], param: :month_year do
     post :copy_previous, on: :member
     get :picker, on: :collection
@@ -383,6 +421,7 @@ Rails.application.routes.draw do
   resources :transfers, only: %i[new create destroy show update] do
     member do
       post :mark_as_recurring
+      patch :tags, action: :update_tags
     end
   end
 
@@ -391,6 +430,7 @@ Rails.application.routes.draw do
       post :publish
       put :revert
       put :apply_template
+      post :cancel
     end
 
     resource :upload, only: %i[show update], module: :import
@@ -471,8 +511,8 @@ Rails.application.routes.draw do
     end
 
     member do
-      patch :dismiss
-      patch :undismiss
+      patch :acknowledge
+      patch :unacknowledge
     end
   end
 
@@ -680,6 +720,20 @@ Rails.application.routes.draw do
       get :preload_accounts
       get :select_accounts
       post :link_accounts
+      get :select_existing_account
+      post :link_existing_account
+    end
+
+    member do
+      post :sync
+      get :setup_accounts
+      post :complete_account_setup
+    end
+  end
+
+  resources :redbark_items, only: %i[create update destroy] do
+    collection do
+      get :select_accounts
       get :select_existing_account
       post :link_existing_account
     end

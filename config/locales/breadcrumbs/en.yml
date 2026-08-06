@@ -58,12 +58,14 @@ en:
     payments: Payments
     pending_duplicate_merges: Duplicate review
     plaid_items: Plaid
+    plan: Plan
     preferences: Preferences
     profile: Profile Info
     profiles: Profile Info
     properties: Properties
     providers: Providers
     recurring_transactions: Recurring
+    redbark_items: Redbark
     registrations: Sign up
     reports: Reports
     rules: Rules

@@ -113,6 +113,7 @@ module AccountableResource
         :opening_balance_date,
         :institution_name, :institution_domain, :notes, :exclude_from_reports,
         :exclude_from_net_worth,
+        :enable_category_matcher,
         accountable_attributes: self.class.permitted_accountable_attributes
       )
     end
