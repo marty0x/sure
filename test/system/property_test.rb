@@ -14,7 +14,16 @@ class PropertiesEditTest < ApplicationSystemTestCase
   test "can persist property subtype" do
     click_link "[system test] Property Account"
     open_account_edit_dialog
-    assert_equal "single_family_home", find("#account_accountable_attributes_subtype").value
+    value = nil
+    3.times do
+      begin
+        value = find("#account_accountable_attributes_subtype").value
+        break if value == "single_family_home"
+      rescue Selenium::WebDriver::Error::StaleElementReferenceError
+        next
+      end
+    end
+    assert_equal "single_family_home", value
   end
 
   private
