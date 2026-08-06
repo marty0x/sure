@@ -253,7 +253,7 @@ jobs:
             echo
             echo "\`$IMAGE_REF\`"
             echo
-            echo 'Deploy it from **marty0x/surefin-infra → Actions → Release Sure** using:'
+            echo 'Deploy it from **marty0x/surefin-infra → Actions → Deploy Production** using:'
             echo
             echo "\`$IMAGE_TAG\`"
           } >> "$GITHUB_STEP_SUMMARY"
