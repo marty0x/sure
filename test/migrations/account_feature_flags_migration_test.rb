@@ -1,24 +1,41 @@
 require "test_helper"
-require Rails.root.join("db/migrate/20260708000001_add_exclude_from_net_worth_to_accounts")
-require Rails.root.join("db/migrate/20260806133000_reconcile_account_feature_flags")
 
 class AccountFeatureFlagsMigrationTest < ActiveSupport::TestCase
-  test "legacy fork schema upgrades through the upstream timestamp collision" do
+  LEGACY_VERSION = "20260708000000"
+  REPAIR_VERSIONS = %w[20260708000001 20260806133000].freeze
+
+  test "Rails migrator upgrades the legacy production ledger through the timestamp collision" do
     connection = ActiveRecord::Base.connection
+    pool = ActiveRecord::Base.connection_pool
+    versions = ([ LEGACY_VERSION ] + REPAIR_VERSIONS).map { |version| connection.quote(version) }.join(", ")
+    original_versions = connection.select_values("SELECT version FROM schema_migrations WHERE version IN (#{versions})")
 
-    assert connection.column_exists?(:accounts, :exclude_from_net_worth)
     connection.remove_column(:accounts, :enable_category_matcher) if connection.column_exists?(:accounts, :enable_category_matcher)
+    connection.execute("DELETE FROM schema_migrations WHERE version IN (#{versions})")
+    connection.execute("INSERT INTO schema_migrations (version) VALUES (#{connection.quote(LEGACY_VERSION)})")
+    connection.schema_cache.clear!
 
-    AddExcludeFromNetWorthToAccounts.new.migrate(:up)
-    ReconcileAccountFeatureFlags.new.migrate(:up)
+    migration_context = ActiveRecord::MigrationContext.new(
+      Rails.application.config.paths["db/migrate"].to_a,
+      pool.schema_migration,
+      pool.internal_metadata
+    )
+    migration_context.up(20260806133000)
 
     assert connection.column_exists?(:accounts, :exclude_from_net_worth)
     assert connection.index_exists?(:accounts, [ :family_id, :exclude_from_net_worth ])
     assert connection.column_exists?(:accounts, :enable_category_matcher)
+    assert_equal REPAIR_VERSIONS, connection.select_values(
+      "SELECT version FROM schema_migrations WHERE version IN (#{REPAIR_VERSIONS.map { |version| connection.quote(version) }.join(", ")}) ORDER BY version"
+    )
   ensure
-    unless connection.column_exists?(:accounts, :enable_category_matcher)
-      connection.add_column(:accounts, :enable_category_matcher, :boolean, default: true, null: false)
+    if connection
+      connection.add_column(:accounts, :enable_category_matcher, :boolean, default: true, null: false) unless connection.column_exists?(:accounts, :enable_category_matcher)
+      connection.execute("DELETE FROM schema_migrations WHERE version IN (#{versions})") if versions
+      original_versions&.each do |version|
+        connection.execute("INSERT INTO schema_migrations (version) VALUES (#{connection.quote(version)})")
+      end
+      connection.schema_cache.clear!
     end
-    connection.schema_cache.clear!
   end
 end
