@@ -29,7 +29,8 @@ class BasisTrade::LiveSnapshotBuilder
       valuator = BasisTrade::OptimismWalletValuator.new
       spot_leg = valuator.value(
         address: @family.basis_long_address,
-        token_addresses: @family.basis_long_token_addresses_array
+        token_addresses: @family.basis_long_token_addresses_array,
+        additional_balances: aave_v4_supplied_balances
       )
       reward_usdc = valuator.value(
         address: @family.basis_long_address,
@@ -62,6 +63,13 @@ class BasisTrade::LiveSnapshotBuilder
 
     def dollars_to_cents(value)
       (BigDecimal(value.to_s) * 100).round(0).to_i
+    end
+
+    def aave_v4_supplied_balances
+      reader = BasisTrade::AaveV4SupplyReader.new
+      @family.basis_long_token_addresses_array.to_h do |token_address|
+        [ token_address, reader.supplied_balance(token_address: token_address, safe_address: @family.basis_long_address) ]
+      end
     end
 
     def reward_usdc_token_addresses

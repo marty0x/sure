@@ -8,9 +8,10 @@ class BasisTrade::OptimismWalletValuator
   ERC20_DECIMALS = "313ce567".freeze
   ERC20_SYMBOL = "95d89b41".freeze
 
-  def value(address:, token_addresses: [])
+  def value(address:, token_addresses: [], additional_balances: {})
     normalized_tokens = token_addresses.map(&:downcase).uniq
-    priced_rows = price_rows(normalized_tokens.map { |token| token_row(address, token) })
+    normalized_additional_balances = additional_balances.to_h.transform_keys { |token| token.to_s.downcase }
+    priced_rows = price_rows(normalized_tokens.map { |token| token_row(address, token, normalized_additional_balances.fetch(token, 0)) })
 
     {
       total_value: priced_rows.sum { |row| row[:value_usd] },
@@ -19,12 +20,12 @@ class BasisTrade::OptimismWalletValuator
   end
 
   private
-    def token_row(owner_address, token_address)
+    def token_row(owner_address, token_address, additional_balance)
       {
         address: token_address,
         symbol: token_symbol(token_address),
         decimals: token_decimals(token_address),
-        balance: token_balance(owner_address, token_address),
+        balance: token_balance(owner_address, token_address) + BigDecimal(additional_balance.to_s),
         token_type: :erc20
       }
     end

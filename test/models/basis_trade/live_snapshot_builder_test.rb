@@ -45,6 +45,38 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     assert_equal BigDecimal("84.92"), result.snapshot.dig(:metadata, :rewards_basis, :usdc_balance)
   end
 
+  test "values weETH supplied by the Cash Safe through the Aave v4 Spoke" do
+    weeth = BasisTrade::AaveV4SupplyReader::WEETH_ADDRESS.downcase
+    @family.update!(
+      basis_long_address: "0x1111111111111111111111111111111111111111",
+      basis_long_token_addresses: weeth
+    )
+
+    BasisTrade::AaveV4SupplyReader.any_instance.expects(:supplied_balance).with(
+      token_address: weeth,
+      safe_address: @family.basis_long_address
+    ).returns(BigDecimal("2.4901"))
+    valuator = BasisTrade::OptimismWalletValuator.any_instance
+    valuator.expects(:value).with(
+      address: @family.basis_long_address,
+      token_addresses: [ weeth ],
+      additional_balances: { weeth => BigDecimal("2.4901") }
+    ).returns(
+      total_value: BigDecimal("7099.100793"),
+      tokens: [ { symbol: "weETH", balance: BigDecimal("2.4901"), price_usd: BigDecimal("2850.93") } ]
+    )
+    valuator.expects(:value).with(
+      address: @family.basis_long_address,
+      token_addresses: BasisTrade::LiveSnapshotBuilder::REWARD_USDC_TOKEN_ADDRESSES
+    ).returns(total_value: BigDecimal("0"), tokens: [])
+
+    result = described_class.new(family: @family).call
+
+    assert_nil result.error
+    assert_equal 709_910, result.snapshot[:spot_leg_cents]
+    assert_equal BigDecimal("2.4901"), result.snapshot.dig(:metadata, :rewards_basis, :eth_balance)
+  end
+
   test "keeps live rewards at zero after reward USDC has been converted into weETH" do
     @family.update!(
       basis_long_address: "0x1111111111111111111111111111111111111111",
