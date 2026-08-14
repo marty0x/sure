@@ -22,6 +22,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
         tokens: [ { symbol: "USDC", balance: BigDecimal("84.92"), price_usd: BigDecimal("1.0") } ]
       }
     )
+    BasisTrade::AaveV4SupplyReader.any_instance.stubs(:supplied_balance).returns(BigDecimal("0"))
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
       total_account_value: BigDecimal("2850.99"),
       total_collateral: BigDecimal("2850.99"),
@@ -56,6 +57,10 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
       token_address: weeth,
       safe_address: @family.basis_long_address
     ).returns(BigDecimal("2.4901"))
+    BasisTrade::AaveV4SupplyReader.any_instance.expects(:supplied_balance).with(
+      token_address: BasisTrade::AaveV4SupplyReader::OPTIMISM_USDC_ADDRESS,
+      safe_address: @family.basis_long_address
+    ).returns(BigDecimal("0"))
     valuator = BasisTrade::OptimismWalletValuator.any_instance
     valuator.expects(:value).with(
       address: @family.basis_long_address,
@@ -67,7 +72,8 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     )
     valuator.expects(:value).with(
       address: @family.basis_long_address,
-      token_addresses: BasisTrade::LiveSnapshotBuilder::REWARD_USDC_TOKEN_ADDRESSES
+      token_addresses: BasisTrade::LiveSnapshotBuilder::REWARD_USDC_TOKEN_ADDRESSES,
+      additional_balances: { BasisTrade::AaveV4SupplyReader::OPTIMISM_USDC_ADDRESS => BigDecimal("0") }
     ).returns(total_value: BigDecimal("0"), tokens: [])
 
     result = described_class.new(family: @family).call
@@ -75,6 +81,43 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     assert_nil result.error
     assert_equal 709_910, result.snapshot[:spot_leg_cents]
     assert_equal BigDecimal("2.4901"), result.snapshot.dig(:metadata, :rewards_basis, :eth_balance)
+  end
+
+  test "values native Optimism USDC supplied through Aave v4 as rewards but not spot" do
+    weeth = BasisTrade::AaveV4SupplyReader::WEETH_ADDRESS.downcase
+    usdc = BasisTrade::AaveV4SupplyReader::OPTIMISM_USDC_ADDRESS
+    @family.update!(
+      basis_long_address: "0x1111111111111111111111111111111111111111",
+      basis_long_token_addresses: "#{weeth},#{usdc}"
+    )
+
+    reader = BasisTrade::AaveV4SupplyReader.any_instance
+    reader.expects(:supplied_balance).with(token_address: weeth, safe_address: @family.basis_long_address).returns(BigDecimal("2.4901"))
+    reader.expects(:supplied_balance).with(token_address: usdc, safe_address: @family.basis_long_address).returns(BigDecimal("84.92"))
+    valuator = BasisTrade::OptimismWalletValuator.any_instance
+    valuator.expects(:value).with(
+      address: @family.basis_long_address,
+      token_addresses: [ weeth ],
+      additional_balances: { weeth => BigDecimal("2.4901") }
+    ).returns(
+      total_value: BigDecimal("7099.100793"),
+      tokens: [ { symbol: "weETH", balance: BigDecimal("2.4901"), price_usd: BigDecimal("2850.93") } ]
+    )
+    valuator.expects(:value).with(
+      address: @family.basis_long_address,
+      token_addresses: BasisTrade::LiveSnapshotBuilder::REWARD_USDC_TOKEN_ADDRESSES,
+      additional_balances: { usdc => BigDecimal("84.92") }
+    ).returns(
+      total_value: BigDecimal("84.92"),
+      tokens: [ { symbol: "USDC", balance: BigDecimal("84.92"), price_usd: BigDecimal("1.0") } ]
+    )
+
+    result = described_class.new(family: @family).call
+
+    assert_nil result.error
+    assert_equal 709_910, result.snapshot[:spot_leg_cents]
+    assert_equal 8_492, result.snapshot[:rewards_accrued_cents]
+    assert_equal BigDecimal("84.92"), result.snapshot.dig(:metadata, :rewards_basis, :usdc_balance)
   end
 
   test "keeps live rewards at zero after reward USDC has been converted into weETH" do
@@ -110,6 +153,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
         tokens: []
       }
     )
+    BasisTrade::AaveV4SupplyReader.any_instance.stubs(:supplied_balance).returns(BigDecimal("0"))
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
       total_account_value: BigDecimal("2850.99"),
       total_collateral: BigDecimal("2850.99"),

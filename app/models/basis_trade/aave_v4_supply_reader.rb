@@ -1,7 +1,7 @@
 require "json"
 require "net/http"
 
-# Reads a Cash Safe's supplied weETH from ether.fi's Optimism Aave v4 Spoke.
+# Reads verified Cash Safe supplied assets from ether.fi's Optimism Aave v4 Spoke.
 # The Hub custody balance is shared liquidity; individual ownership is recorded
 # by the Spoke, so it must not be inferred from the Hub's ERC-20 balance.
 class BasisTrade::AaveV4SupplyReader
@@ -13,6 +13,12 @@ class BasisTrade::AaveV4SupplyReader
   SPOKE_ADDRESS = "0xdffcC3536D932eb51Df51a7F5FA407c4270d5308".freeze
   WEETH_ADDRESS = "0x5A7fACB970D094B6C7FF1df0eA68D99E6e73CBFF".freeze
   WEETH_DECIMALS = 18
+  OPTIMISM_USDC_ADDRESS = "0x0b2c639c533813f4aa9d7837caf62653d097ff85".freeze
+  OPTIMISM_USDC_DECIMALS = 6
+  SUPPORTED_TOKENS = {
+    WEETH_ADDRESS.downcase => WEETH_DECIMALS,
+    OPTIMISM_USDC_ADDRESS => OPTIMISM_USDC_DECIMALS
+  }.freeze
 
   # keccak256("getAssetId(address)")[0, 4]
   GET_ASSET_ID_SELECTOR = "d6abe642".freeze
@@ -21,17 +27,19 @@ class BasisTrade::AaveV4SupplyReader
   # keccak256("getUserSuppliedAssets(uint256,address)")[0, 4]
   GET_USER_SUPPLIED_ASSETS_SELECTOR = "f1568a89".freeze
 
-  # Returns zero for tokens that are not in the migrated weETH position. This
-  # keeps caller-configured direct ERC-20 valuation and reward handling intact.
+  # Returns zero without making RPC calls for unverified assets. Individual
+  # ownership is only read for assets verified against this deployment.
   def supplied_balance(token_address:, safe_address:)
-    return BigDecimal("0") unless token_address.to_s.casecmp?(WEETH_ADDRESS)
+    token_address = token_address.to_s.downcase
+    decimals = SUPPORTED_TOKENS[token_address]
+    return BigDecimal("0") unless decimals
 
     validate_address!(safe_address, "safe_address")
-    asset_id = uint256_call(HUB_ADDRESS, "#{GET_ASSET_ID_SELECTOR}#{encoded_address(WEETH_ADDRESS)}")
+    asset_id = uint256_call(HUB_ADDRESS, "#{GET_ASSET_ID_SELECTOR}#{encoded_address(token_address)}")
     reserve_id = uint256_call(SPOKE_ADDRESS, "#{GET_RESERVE_ID_SELECTOR}#{encoded_address(HUB_ADDRESS)}#{encoded_uint256(asset_id)}")
     units = uint256_call(SPOKE_ADDRESS, "#{GET_USER_SUPPLIED_ASSETS_SELECTOR}#{encoded_uint256(reserve_id)}#{encoded_address(safe_address)}")
 
-    BigDecimal(units.to_s) / (10 ** WEETH_DECIMALS)
+    BigDecimal(units.to_s) / (10 ** decimals)
   end
 
   private

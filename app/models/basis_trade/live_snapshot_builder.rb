@@ -29,12 +29,13 @@ class BasisTrade::LiveSnapshotBuilder
       valuator = BasisTrade::OptimismWalletValuator.new
       spot_leg = valuator.value(
         address: @family.basis_long_address,
-        token_addresses: @family.basis_long_token_addresses_array,
+        token_addresses: spot_token_addresses,
         additional_balances: aave_v4_supplied_balances
       )
       reward_usdc = valuator.value(
         address: @family.basis_long_address,
-        token_addresses: reward_usdc_token_addresses
+        token_addresses: reward_usdc_token_addresses,
+        additional_balances: aave_v4_supplied_reward_usdc_balances
       )
 
       snapshot[:spot_leg_cents] = dollars_to_cents(spot_leg[:total_value])
@@ -67,14 +68,29 @@ class BasisTrade::LiveSnapshotBuilder
 
     def aave_v4_supplied_balances
       reader = BasisTrade::AaveV4SupplyReader.new
-      @family.basis_long_token_addresses_array.to_h do |token_address|
+      spot_token_addresses.to_h do |token_address|
         [ token_address, reader.supplied_balance(token_address: token_address, safe_address: @family.basis_long_address) ]
       end
     end
 
+    def spot_token_addresses
+      @family.basis_long_token_addresses_array.reject do |token_address|
+        REWARD_USDC_TOKEN_ADDRESSES.include?(token_address)
+      end
+    end
+
     def reward_usdc_token_addresses
-      configured = @family.basis_long_token_addresses_array
-      REWARD_USDC_TOKEN_ADDRESSES.reject { |address| configured.include?(address) }
+      REWARD_USDC_TOKEN_ADDRESSES
+    end
+
+    def aave_v4_supplied_reward_usdc_balances
+      usdc_address = BasisTrade::AaveV4SupplyReader::OPTIMISM_USDC_ADDRESS
+      supplied_balance = BasisTrade::AaveV4SupplyReader.new.supplied_balance(
+        token_address: usdc_address,
+        safe_address: @family.basis_long_address
+      )
+
+      { usdc_address => supplied_balance }
     end
 
     def rewards_basis_for(spot_tokens:, reward_tokens:)
