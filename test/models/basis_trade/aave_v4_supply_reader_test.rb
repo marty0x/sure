@@ -17,7 +17,7 @@ class BasisTrade::AaveV4SupplyReaderTest < ActiveSupport::TestCase
       [
         {
           to: BasisTrade::AaveV4SupplyReader::HUB_ADDRESS,
-          data: "0x#{BasisTrade::AaveV4SupplyReader::GET_ASSET_ID_SELECTOR}#{BasisTrade::AaveV4SupplyReader::WEETH_ADDRESS.delete_prefix('0x').rjust(64, '0')}"
+          data: "0x#{BasisTrade::AaveV4SupplyReader::GET_ASSET_ID_SELECTOR}#{BasisTrade::AaveV4SupplyReader::WEETH_ADDRESS.delete_prefix('0x').downcase.rjust(64, '0')}"
         },
         "latest"
       ]
