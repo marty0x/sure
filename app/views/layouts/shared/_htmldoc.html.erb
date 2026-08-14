@@ -19,7 +19,10 @@
       <button hidden data-controller="hotkey" data-hotkey="t t /" data-action="theme#toggle"></button>
     <% end %>
 
-    <% if Current.family %>
+    <%# Basis performs bounded request-time reads of live on-chain values. It deliberately
+        stays off the family-wide refresh channel so unrelated account-sync broadcasts cannot
+        interrupt a Turbo visit or force a refresh while the user is comparing the position. %>
+    <% if Current.family && controller_name != "basis" %>
       <%= turbo_stream_from Current.family %>
     <% end %>
 

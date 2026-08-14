@@ -23,6 +23,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/Basis/i, response.body)
     assert_select "a[href='#{basis_path}']"
+    assert_no_match(/turbo-cable-stream-source/, response.body)
   end
 
   test "renders empty state when no snapshots exist" do
@@ -100,14 +101,10 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Settings → Preferences/i, response.body)
   end
 
-  test "refreshes ether.fi Credit on page load when a spot vault is configured" do
+  test "does not write the ether.fi Credit balance while rendering the basis page" do
     @user.family.update!(basis_long_address: "0x1111111111111111111111111111111111111111")
 
-    updater = mock
-    updater.expects(:call).once.returns(
-      BasisTrade::CashLoanUpdater::Result.new(configured: true, updated: true, balance: BigDecimal("123.45"))
-    )
-    BasisTrade::CashLoanUpdater.expects(:new).with(family: @user.family).returns(updater)
+    BasisTrade::CashLoanUpdater.expects(:new).never
 
     BasisTrade::LiveSnapshotBuilder.any_instance.stubs(:call).returns(
       BasisTrade::LiveSnapshotBuilder::Result.new(configured: true, snapshot: {
