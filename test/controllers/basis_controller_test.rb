@@ -64,6 +64,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
         tokens: [ { symbol: "USDC", balance: BigDecimal("84.92"), price_usd: BigDecimal("1.0") } ]
       }
     )
+    BasisTrade::AaveV4SupplyReader.any_instance.stubs(:supplied_balance).returns(BigDecimal("0"))
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
       total_account_value: BigDecimal("2850.99"),
       total_collateral: BigDecimal("2850.99"),
