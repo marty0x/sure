@@ -27,7 +27,7 @@ class BasisTrade::AaveV4SupplyReaderTest < ActiveSupport::TestCase
       [
         {
           to: BasisTrade::AaveV4SupplyReader::SPOKE_ADDRESS,
-          data: "0x#{BasisTrade::AaveV4SupplyReader::GET_RESERVE_ID_SELECTOR}#{BasisTrade::AaveV4SupplyReader::HUB_ADDRESS.delete_prefix('0x').rjust(64, '0')}#{asset_id}"
+          data: "0x#{BasisTrade::AaveV4SupplyReader::GET_RESERVE_ID_SELECTOR}#{BasisTrade::AaveV4SupplyReader::HUB_ADDRESS.delete_prefix('0x').downcase.rjust(64, '0')}#{asset_id}"
         },
         "latest"
       ]
