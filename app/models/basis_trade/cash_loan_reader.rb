@@ -1,43 +1,43 @@
 require "json"
 require "net/http"
 
-# Reads a user's live total borrow balance from ether.fi's Aave v4 Spoke on
-# Optimism mainnet. The Spoke records the Cash Safe's position, including
-# accrued interest across every borrowed asset.
+# Reads a user's live total borrow balance from ether.fi's Cash LendGateway on
+# Optimism mainnet. The gateway is the Cash app's Aave v4 display source: it
+# aggregates every registered debt reserve using Cash's own price provider.
 class BasisTrade::CashLoanReader
   RPC_URL = "https://mainnet.optimism.io".freeze
 
-  # ether.fi's official Optimism Aave v4 Spoke. See:
-  # https://etherfi.gitbook.io/etherfi/products/borrow/lending-market-parameters
-  SPOKE_ADDRESS = "0xdffcC3536D932eb51Df51a7F5FA407c4270d5308".freeze
+  # Ether.fi Cash LendGateway for the official Optimism Aave v4 deployment.
+  # See etherfi-protocol/cash-v3 deployments/mainnet/10/cash-lend.json.
+  LEND_GATEWAY_ADDRESS = "0x01F8cDFb1694eA8fE4ED6c38a0fD78d1188E03F4".freeze
 
-  # keccak256("getUserAccountData(address)")[0, 4]
-  GET_USER_ACCOUNT_DATA_SELECTOR = "bf92857c".freeze
+  # keccak256("getAccountData(address)")[0, 4]
+  GET_ACCOUNT_DATA_SELECTOR = "5d78650e".freeze
 
-  # Aave v4 Value uses 26 decimals per USD and totalDebtValueRay adds RAY's
-  # 27 decimals. See etherfi-protocol/aave-v4 SpokeUtils#toValue.
-  USD_DEBT_DECIMALS = 53
+  # LendGateway::AccountData#debtUsd uses 6 decimals, matching the Cash app.
+  USD_DEBT_DECIMALS = 6
 
   # Returns the outstanding borrow balance for the vault (safe) in USD as a BigDecimal.
   def borrowing_usd(vault_address:)
     raise ArgumentError, "vault_address is required" if vault_address.blank?
 
     validate_address!(vault_address)
-    data = "0x#{GET_USER_ACCOUNT_DATA_SELECTOR}#{encoded_address(vault_address)}"
-    raw = rpc_call("eth_call", [ { to: SPOKE_ADDRESS, data: data }, "latest" ])
+    data = "0x#{GET_ACCOUNT_DATA_SELECTOR}#{encoded_address(vault_address)}"
+    raw = rpc_call("eth_call", [ { to: LEND_GATEWAY_ADDRESS, data: data }, "latest" ])
 
     decode_total_debt(raw)
   end
 
   private
-    # getUserAccountData(address) returns UserAccountData, whose fifth word is
-    # totalDebtValueRay: total debt in USD Value units (1e26 per USD), scaled by RAY (1e27).
+    # getAccountData(address) returns AccountData, whose second word is debtUsd.
+    # The gateway calculates it from every registered Aave debt reserve using the
+    # same 6-decimal PriceProvider conversion as the Ether.fi Cash app.
     def decode_total_debt(raw)
       payload = raw.to_s.delete_prefix("0x")
-      raise "Unexpected Aave v4 response: #{raw.inspect}" unless payload.match?(/\A[0-9a-fA-F]{448}\z/)
+      raise "Unexpected Ether.fi LendGateway response: #{raw.inspect}" unless payload.match?(/\A[0-9a-fA-F]{320}\z/)
 
-      total_debt_value_ray = payload[256, 64].to_i(16)
-      BigDecimal(total_debt_value_ray.to_s) / (10 ** USD_DEBT_DECIMALS)
+      debt_usd = payload[64, 64].to_i(16)
+      BigDecimal(debt_usd.to_s) / (10 ** USD_DEBT_DECIMALS)
     end
 
     def encoded_address(address)
