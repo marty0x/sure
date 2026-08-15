@@ -1,44 +1,51 @@
 require "json"
 require "net/http"
 
-# Reads a user's live borrow balance from the ether.fi Cash DebtManager contract
-# on Optimism mainnet. ether.fi Cash lets you borrow USDC against weETH collateral
-# held in your Cash safe; DebtManager#borrowingOf(address) returns the total
-# outstanding debt for that safe in USD with 6 decimals.
+# Reads a user's live total borrow balance from ether.fi's Aave v4 Spoke on
+# Optimism mainnet. The Spoke records the Cash Safe's position, including
+# accrued interest across every borrowed asset.
 class BasisTrade::CashLoanReader
   RPC_URL = "https://mainnet.optimism.io".freeze
 
-  # ether.fi Cash DebtManager on Optimism (chain id 10). See
-  # https://github.com/etherfi-protocol/cash-v3 -> deployments/mainnet/10/deployments.json
-  DEBT_MANAGER_ADDRESS = "0x0078C5a459132e279056B2371fE8A8eC973A9553".freeze
+  # ether.fi's official Optimism Aave v4 Spoke. See:
+  # https://etherfi.gitbook.io/etherfi/products/borrow/lending-market-parameters
+  SPOKE_ADDRESS = "0xdffcC3536D932eb51Df51a7F5FA407c4270d5308".freeze
 
-  # keccak256("borrowingOf(address)")[0, 4]
-  BORROWING_OF_SELECTOR = "186c66cc".freeze
+  # keccak256("getUserAccountData(address)")[0, 4]
+  GET_USER_ACCOUNT_DATA_SELECTOR = "bf92857c".freeze
 
-  # DebtManager reports all USD amounts with 6 decimals.
-  USD_DECIMALS = 6
+  # Aave v4 Value uses 26 decimals per USD and totalDebtValueRay adds RAY's
+  # 27 decimals. See etherfi-protocol/aave-v4 SpokeUtils#toValue.
+  USD_DEBT_DECIMALS = 53
 
   # Returns the outstanding borrow balance for the vault (safe) in USD as a BigDecimal.
   def borrowing_usd(vault_address:)
     raise ArgumentError, "vault_address is required" if vault_address.blank?
 
-    padded_address = vault_address.to_s.delete_prefix("0x").downcase.rjust(64, "0")
-    data = "0x#{BORROWING_OF_SELECTOR}#{padded_address}"
-    raw = rpc_call("eth_call", [ { to: DEBT_MANAGER_ADDRESS, data: data }, "latest" ])
+    validate_address!(vault_address)
+    data = "0x#{GET_USER_ACCOUNT_DATA_SELECTOR}#{encoded_address(vault_address)}"
+    raw = rpc_call("eth_call", [ { to: SPOKE_ADDRESS, data: data }, "latest" ])
 
-    decode_total_borrowings(raw)
+    decode_total_debt(raw)
   end
 
   private
-    # borrowingOf(address) returns (TokenData[] memory, uint256 totalBorrowingsInUsd).
-    # The ABI head is [offset_to_array (32 bytes), totalBorrowings (32 bytes)], so the
-    # total we want is the second 32-byte word of the returned data.
-    def decode_total_borrowings(raw)
+    # getUserAccountData(address) returns UserAccountData, whose fifth word is
+    # totalDebtValueRay: total debt in USD Value units (1e26 per USD), scaled by RAY (1e27).
+    def decode_total_debt(raw)
       payload = raw.to_s.delete_prefix("0x")
-      raise "Unexpected DebtManager response: #{raw.inspect}" if payload.length < 128
+      raise "Unexpected Aave v4 response: #{raw.inspect}" unless payload.match?(/\A[0-9a-fA-F]{448}\z/)
 
-      total_units = payload[64, 64].to_i(16)
-      BigDecimal(total_units.to_s) / (10 ** USD_DECIMALS)
+      total_debt_value_ray = payload[256, 64].to_i(16)
+      BigDecimal(total_debt_value_ray.to_s) / (10 ** USD_DEBT_DECIMALS)
+    end
+
+    def encoded_address(address)
+      address.delete_prefix("0x").downcase.rjust(64, "0")
+    end
+
+    def validate_address!(address)
+      raise ArgumentError, "vault_address must be a 20-byte address" unless address.to_s.match?(/\A0x[0-9a-fA-F]{40}\z/)
     end
 
     def rpc_call(method, params)
