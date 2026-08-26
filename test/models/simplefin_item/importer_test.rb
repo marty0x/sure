@@ -25,7 +25,8 @@ class SimplefinItem::ImporterTest < ActiveSupport::TestCase
       name: "Amex",
       account_id: "sf_amex_1",
       account_type: "credit",
-      currency: "USD"
+      currency: "USD",
+      current_balance: -1911.72
     )
     credit_card.update!(simplefin_account_id: simplefin_account.id)
 
