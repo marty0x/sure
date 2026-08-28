@@ -1,7 +1,6 @@
-# Overwrites the manually-tracked "ether.fi Credit" loan balance with the live
-# borrow amount read from the ether.fi Cash DebtManager on Optimism. The vault
-# (Cash safe) address is the family's configured basis long spot wallet, which is
-# where the weETH collateral is held and borrowed against.
+# Overwrites the manually-tracked "ether.fi Credit" loan balance with direct
+# CashEventEmitter LendBorrowed USDC values less the family's cumulative Basis
+# repayments, floored at zero because Basis debt cannot be negative. It intentionally excludes Ether.fi Cash facility/card debt.
 #
 # Runs on the same cadence as basis snapshots (see RecordBasisSnapshotsJob).
 class BasisTrade::CashLoanUpdater
@@ -22,7 +21,8 @@ class BasisTrade::CashLoanUpdater
     # loan account is a benign skip rather than an error.
     return Result.new(configured: true, updated: false) if account.nil?
 
-    balance = @reader.borrowing_usd(vault_address: @family.basis_long_address)
+    direct_borrow_total = @reader.borrowed_usdc(vault_address: @family.basis_long_address)
+    balance = [ direct_borrow_total - @family.basis_borrow_repaid_usdc, BigDecimal("0") ].max
 
     result = account.set_current_balance(balance)
     raise result.error if result.error.present?

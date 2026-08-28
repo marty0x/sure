@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_133000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_28_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -773,6 +773,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_133000) do
     t.string "assistant_type", default: "builtin", null: false
     t.boolean "auto_sync_on_login", default: true, null: false
     t.string "basis_lighter_address"
+    t.decimal "basis_borrow_repaid_usdc", precision: 19, scale: 6, default: "0.0", null: false
     t.string "basis_long_address"
     t.text "basis_long_token_addresses"
     t.string "country", default: "US"
@@ -795,6 +796,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_133000) do
     t.string "timezone"
     t.datetime "updated_at", null: false
     t.string "vector_store_id"
+    t.check_constraint "basis_borrow_repaid_usdc >= 0::numeric", name: "families_basis_borrow_repaid_usdc_nonnegative"
     t.check_constraint "default_account_sharing::text = ANY (ARRAY['shared'::character varying::text, 'private'::character varying::text])", name: "chk_families_default_account_sharing"
     t.check_constraint "month_start_day >= 1 AND month_start_day <= 28", name: "month_start_day_range"
   end

@@ -162,6 +162,7 @@ class Family < ApplicationRecord
   validates :default_account_sharing, inclusion: { in: SHARING_DEFAULTS }
   validates :basis_long_address, :basis_lighter_address,
             format: { with: EVM_ADDRESS_FORMAT }, allow_blank: true
+  validates :basis_borrow_repaid_usdc, numericality: { greater_than_or_equal_to: 0 }
 
   before_validation :normalize_enabled_currencies!
   before_validation :normalize_basis_trade_settings!

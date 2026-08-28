@@ -218,6 +218,12 @@
               label: t(".basis_lighter_address_label"),
               placeholder: t(".basis_lighter_address_placeholder"),
               hint: t(".basis_lighter_address_hint") %>
+
+          <%= family_form.number_field :basis_borrow_repaid_usdc,
+              min: 0,
+              step: "0.000001",
+              label: t(".basis_borrow_repaid_usdc_label"),
+              hint: t(".basis_borrow_repaid_usdc_hint") %>
         <% end %>
 
         <div class="flex justify-end">

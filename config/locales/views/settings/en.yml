@@ -213,6 +213,8 @@ en:
         basis_lighter_address_label: Perps wallet address
         basis_lighter_address_placeholder: "0x..."
         basis_lighter_address_hint: Sure will sum the total account value of every Perps account/sub-account linked to this wallet.
+        basis_borrow_repaid_usdc_label: Amount repaid against Basis borrows (USDC)
+        basis_borrow_repaid_usdc_hint: Cumulative direct-Basis USDC repayments. This is subtracted from CashEventEmitter LendBorrowed events only; card spending is excluded.
         preview:
           title: Enable preview features
           description: Opt in to in-progress features tagged preview or canary.

@@ -55,7 +55,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
           id: @user.family.id,
           basis_long_address: "0x1111111111111111111111111111111111111111",
           basis_long_token_addresses: "0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333",
-          basis_lighter_address: "0x4444444444444444444444444444444444444444"
+          basis_lighter_address: "0x4444444444444444444444444444444444444444",
+          basis_borrow_repaid_usdc: "48.125"
         }
       }
     }
@@ -68,6 +69,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       "0x3333333333333333333333333333333333333333"
     ], family.basis_long_token_addresses_array
     assert_equal "0x4444444444444444444444444444444444444444", family.basis_lighter_address
+    assert_equal BigDecimal("48.125"), family.basis_borrow_repaid_usdc
   end
 
   test "non-admin cannot update enabled family currencies" do
@@ -97,14 +99,17 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         redirect_to: "preferences",
         family_attributes: {
           id: @member.family.id,
-          basis_long_address: "0x1111111111111111111111111111111111111111"
+          basis_long_address: "0x1111111111111111111111111111111111111111",
+          basis_borrow_repaid_usdc: "48.125"
         }
       }
     }
 
     assert_redirected_to settings_profile_url
     assert_equal I18n.t("users.reset.unauthorized"), flash[:alert]
-    assert_nil @member.family.reload.basis_long_address
+    family = @member.family.reload
+    assert_nil family.basis_long_address
+    assert_equal BigDecimal("0"), family.basis_borrow_repaid_usdc
   end
 
   test "admin can reset family data" do
