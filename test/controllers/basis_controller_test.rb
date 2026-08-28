@@ -186,8 +186,15 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
 
     BasisTrade::LiveSnapshotBuilder.any_instance.stubs(:call).returns(
       BasisTrade::LiveSnapshotBuilder::Result.new(
-        configured: false,
-        snapshot: { metadata: { direct_borrow_outstanding_cents: 100_000 } }
+        configured: true,
+        snapshot: {
+          currency: "USD",
+          spot_leg_cents: 0,
+          short_leg_cents: 0,
+          funding_accrued_cents: 0,
+          rewards_accrued_cents: 0,
+          metadata: { direct_borrow_outstanding_cents: 100_000 }
+        }
       )
     )
 
