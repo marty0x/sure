@@ -66,6 +66,8 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
       }
     )
     BasisTrade::AaveV4SupplyReader.any_instance.stubs(:supplied_balance).returns(BigDecimal("0"))
+    @user.family.update!(basis_borrow_repaid_usdc: BigDecimal("48.125"))
+    BasisTrade::CashLoanReader.any_instance.stubs(:borrowed_usdc).returns(BigDecimal("1248"))
     Provider::Lighter.any_instance.stubs(:total_account_value_for_l1_address).returns(
       total_account_value: BigDecimal("2850.99"),
       total_collateral: BigDecimal("2850.99"),
@@ -82,7 +84,7 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Perps account values/i, response.body)
     assert_match(/weETH/i, response.body)
     assert_match(/Account 730104/i, response.body)
-    assert_match(/\$10,048\.75/, response.body)
+    assert_match(/\$8,848\.88/, response.body)
     assert_match(/\$7,095\.44/, response.body)
     assert_match(/\$2,850\.99 USD/, response.body)
     assert_match(/\$7,112\.99/, response.body)

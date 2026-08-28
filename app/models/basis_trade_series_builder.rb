@@ -72,7 +72,8 @@ class BasisTradeSeriesBuilder
         short: to_decimal(snapshot.short_leg_cents),
         funding: to_decimal(snapshot.funding_accrued_cents),
         rewards: rewards_value(snapshot),
-        lighter_account_value: lighter_account_value_for(snapshot)
+        lighter_account_value: lighter_account_value_for(snapshot),
+        direct_borrow_outstanding: direct_borrow_outstanding_for(snapshot)
       )
     end
 
@@ -82,7 +83,8 @@ class BasisTradeSeriesBuilder
         short: to_decimal(snapshot.short_leg_cents),
         funding: to_decimal(snapshot.funding_accrued_cents),
         rewards: to_decimal(snapshot.rewards_accrued_cents),
-        lighter_account_value: lighter_account_value_for(snapshot)
+        lighter_account_value: lighter_account_value_for(snapshot),
+        direct_borrow_outstanding: direct_borrow_outstanding_for(snapshot)
       )
     end
 
@@ -100,16 +102,17 @@ class BasisTradeSeriesBuilder
       )
     end
 
-    def build_leg_payload(spot:, short:, funding:, rewards:, lighter_account_value: nil)
+    def build_leg_payload(spot:, short:, funding:, rewards:, lighter_account_value: nil, direct_borrow_outstanding: 0)
       spot = spot.to_f.round(2)
       short = short.to_f.round(2)
       funding = funding.to_f.round(2)
       rewards = rewards.to_f.round(2)
       lighter_account_value = lighter_account_value&.to_f&.round(2)
+      direct_borrow_outstanding = direct_borrow_outstanding.to_f.round(2)
       combined = if lighter_account_value.present?
-        (spot + lighter_account_value + funding + rewards).round(2)
+        (spot + lighter_account_value + funding + rewards - direct_borrow_outstanding).round(2)
       else
-        (spot + short + funding + rewards).round(2)
+        (spot + short + funding + rewards - direct_borrow_outstanding).round(2)
       end
 
       {
@@ -127,6 +130,13 @@ class BasisTradeSeriesBuilder
       return if value.blank?
 
       BigDecimal(value.to_s)
+    end
+
+    def direct_borrow_outstanding_for(snapshot)
+      cents = snapshot&.metadata&.dig("direct_borrow_outstanding_cents") || snapshot&.metadata&.dig(:direct_borrow_outstanding_cents)
+      return 0 if cents.blank?
+
+      BigDecimal(cents.to_s) / 100
     end
 
     def to_decimal(cents)

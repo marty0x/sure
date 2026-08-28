@@ -170,4 +170,35 @@ class BasisTradeSeriesBuilderTest < ActiveSupport::TestCase
 
     assert_equal [ inside.recorded_at.to_date.iso8601 ], payload[:points].map { |point| point[:date] }
   end
+
+  test "deducts persisted direct borrow debt from combined account value and treats missing debt metadata as zero" do
+    BasisTradeSnapshot.create!(
+      family: @family,
+      recorded_at: Time.zone.parse("2026-06-20 12:00:00"),
+      spot_leg_cents: 1_500_000,
+      short_leg_cents: -25_000,
+      funding_accrued_cents: 12_000,
+      rewards_accrued_cents: 0,
+      currency: "USD",
+      metadata: { lighter: { total_account_value: "280.0" } }
+    )
+    BasisTradeSnapshot.create!(
+      family: @family,
+      recorded_at: Time.zone.parse("2026-06-21 12:00:00"),
+      spot_leg_cents: 1_550_000,
+      short_leg_cents: -30_000,
+      funding_accrued_cents: 15_000,
+      rewards_accrued_cents: 0,
+      currency: "USD",
+      metadata: {
+        lighter: { total_account_value: "290.0" },
+        direct_borrow_outstanding_cents: 119_988
+      }
+    )
+
+    payload = BasisTradeSeriesBuilder.new(family: @family).payload
+
+    assert_equal 1792.0, payload[:points].first[:combined]
+    assert_equal 655.12, payload[:points].last[:combined]
+  end
 end

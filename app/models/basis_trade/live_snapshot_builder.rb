@@ -46,6 +46,7 @@ class BasisTrade::LiveSnapshotBuilder
         reward_tokens: reward_usdc[:tokens]
       )
       snapshot[:rewards_accrued_cents] = dollars_to_cents(reward_usdc[:total_value])
+      snapshot[:metadata][:direct_borrow_outstanding_cents] = direct_borrow_outstanding_cents
     end
 
     if @family.basis_lighter_address.present?
@@ -64,6 +65,11 @@ class BasisTrade::LiveSnapshotBuilder
 
     def dollars_to_cents(value)
       (BigDecimal(value.to_s) * 100).round(0).to_i
+    end
+
+    def direct_borrow_outstanding_cents
+      borrowed_usdc = BasisTrade::CashLoanReader.new.borrowed_usdc(vault_address: @family.basis_long_address)
+      dollars_to_cents([ borrowed_usdc - @family.basis_borrow_repaid_usdc, BigDecimal("0") ].max)
     end
 
     def aave_v4_supplied_balances

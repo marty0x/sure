@@ -29,6 +29,7 @@ class BasisTrade::SnapshotRecorderTest < ActiveSupport::TestCase
       funding_accrued_cents: 63,
       rewards_accrued_cents: 8_492,
       metadata: {
+        direct_borrow_outstanding_cents: 119_988,
         rewards_basis: {
           eth_balance: BigDecimal("2.4901"),
           eth_price_usd: BigDecimal("2850.93"),
@@ -56,6 +57,7 @@ class BasisTrade::SnapshotRecorderTest < ActiveSupport::TestCase
     assert_equal "2.4901", snapshot.metadata.dig("rewards_basis", "eth_balance").to_s
     assert_equal "2850.93", snapshot.metadata.dig("rewards_basis", "eth_price_usd").to_s
     assert_equal "84.92", snapshot.metadata.dig("rewards_basis", "usdc_balance").to_s
+    assert_equal 119_988, snapshot.metadata["direct_borrow_outstanding_cents"]
   end
 
   test "uses the first recorded spot value as the anchor for the initial snapshot" do

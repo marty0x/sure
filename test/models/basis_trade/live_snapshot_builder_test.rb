@@ -3,6 +3,7 @@ require "test_helper"
 class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
   setup do
     @family = families(:dylan_family)
+    BasisTrade::CashLoanReader.any_instance.stubs(:borrowed_usdc).returns(BigDecimal("0"))
   end
 
   test "uses spot wallet value, lighter notional for short leg, includes unconverted reward USDC, and captures reward basis metadata" do
@@ -44,6 +45,27 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     assert_equal BigDecimal("2.4901"), result.snapshot.dig(:metadata, :rewards_basis, :eth_balance)
     assert_equal BigDecimal("2850.93"), result.snapshot.dig(:metadata, :rewards_basis, :eth_price_usd)
     assert_equal BigDecimal("84.92"), result.snapshot.dig(:metadata, :rewards_basis, :usdc_balance)
+  end
+
+  test "records direct Cash borrows less manual repayments as outstanding debt metadata" do
+    @family.update!(
+      basis_long_address: "0x1111111111111111111111111111111111111111",
+      basis_long_token_addresses: "0x2222222222222222222222222222222222222222",
+      basis_borrow_repaid_usdc: BigDecimal("48.125")
+    )
+    BasisTrade::CashLoanReader.any_instance.expects(:borrowed_usdc)
+      .with(vault_address: @family.basis_long_address)
+      .returns(BigDecimal("1248"))
+    BasisTrade::OptimismWalletValuator.any_instance.stubs(:value).returns(
+      { total_value: BigDecimal("0"), tokens: [] },
+      { total_value: BigDecimal("0"), tokens: [] }
+    )
+    BasisTrade::AaveV4SupplyReader.any_instance.stubs(:supplied_balance).returns(BigDecimal("0"))
+
+    result = described_class.new(family: @family).call
+
+    assert_nil result.error
+    assert_equal 119_988, result.snapshot.dig(:metadata, :direct_borrow_outstanding_cents)
   end
 
   test "values weETH supplied by the Cash Safe through the Aave v4 Spoke" do
