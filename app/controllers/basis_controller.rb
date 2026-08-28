@@ -18,17 +18,22 @@ class BasisController < ApplicationController
     ).payload
 
     @has_snapshots = @basis_chart_payload[:points].any?
+    @basis_live_snapshot = live_snapshot_result.snapshot
+    @basis_live_error = live_snapshot_result.error
+    @basis_sources_configured = live_snapshot_result.configured
+
     @basis_apy = BasisTrade::ApyCalculator.new(points: @basis_chart_payload[:points]).summary if @has_snapshots
 
     if @basis_apy&.dig(:current)
-      @borrow_cost = BasisTrade::BorrowCostCalculator.new(initial_amount: @basis_apy[:initial_amount]).summary
+      direct_borrow_outstanding = (@basis_live_snapshot || {}).dig(:metadata, :direct_borrow_outstanding_cents).to_i / 100.0
+      @borrow_cost = BasisTrade::BorrowCostCalculator.new(
+        initial_amount: @basis_apy[:initial_amount],
+        direct_borrow_outstanding: direct_borrow_outstanding
+      ).summary
       @basis_apy[:current] = (@basis_apy[:current] - @borrow_cost[:percent]).round(2) if @borrow_cost
     end
 
     @eth_sma = BasisTrade::EthSmaIndicator.new.summary
-    @basis_live_snapshot = live_snapshot_result.snapshot
-    @basis_live_error = live_snapshot_result.error
-    @basis_sources_configured = live_snapshot_result.configured
 
     @breadcrumbs = [ [ t("breadcrumbs.home"), root_path ],
                      [ t("basis.show.title"), nil ] ]

@@ -184,13 +184,21 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
       currency: "USD"
     )
 
+    BasisTrade::LiveSnapshotBuilder.any_instance.stubs(:call).returns(
+      BasisTrade::LiveSnapshotBuilder::Result.new(
+        configured: false,
+        snapshot: { metadata: { direct_borrow_outstanding_cents: 100_000 } }
+      )
+    )
+
     get basis_path
 
     assert_response :success
     assert_match(/Borrow Cost/i, response.body)
-    # Gross APY is 36.5%; borrow cost is (1/3) * 1000 * 2% = $6.67 = 0.67% drag.
-    assert_match(/35\.83%/, response.body)
-    assert_match(/-\$6\.67/, response.body)
-    assert_match(/-0\.67%/, response.body)
+    # Gross APY is 36.5%. Existing revolving estimate is $6.67 (0.67%),
+    # plus a $1,000 direct borrow at 4% ($40.00 / 4.00%) = $46.67 / 4.67%.
+    assert_match(/31\.83%/, response.body)
+    assert_match(/-\$46\.67/, response.body)
+    assert_match(/-4\.67%/, response.body)
   end
 end

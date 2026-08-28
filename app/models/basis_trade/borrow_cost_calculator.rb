@@ -9,8 +9,9 @@ module BasisTrade
     AVERAGE_BALANCE_APR = BORROW_APR / 2
     BORROWED_FRACTION_OF_STRATEGY = 1.0 / 3
 
-    def initialize(initial_amount:)
+    def initialize(initial_amount:, direct_borrow_outstanding: 0)
       @initial_amount = initial_amount.to_f
+      @direct_borrow_outstanding = direct_borrow_outstanding.to_f
     end
 
     def summary
@@ -23,10 +24,18 @@ module BasisTrade
     end
 
     private
-      attr_reader :initial_amount
+      attr_reader :initial_amount, :direct_borrow_outstanding
 
       def dollars
-        (BORROWED_FRACTION_OF_STRATEGY * initial_amount * AVERAGE_BALANCE_APR).round(2)
+        (revolving_borrow_cost + direct_borrow_cost).round(2)
+      end
+
+      def revolving_borrow_cost
+        BORROWED_FRACTION_OF_STRATEGY * initial_amount * AVERAGE_BALANCE_APR
+      end
+
+      def direct_borrow_cost
+        direct_borrow_outstanding * BORROW_APR
       end
 
       def percent

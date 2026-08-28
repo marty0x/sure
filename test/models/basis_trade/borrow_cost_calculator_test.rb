@@ -10,6 +10,18 @@ class BasisTrade::BorrowCostCalculatorTest < ActiveSupport::TestCase
     assert_equal 0.67, summary[:percent]
   end
 
+  test "adds the full Cash direct-borrow APR to the annualized cost" do
+    summary = BasisTrade::BorrowCostCalculator.new(
+      initial_amount: 10_000,
+      direct_borrow_outstanding: 1_000
+    ).summary
+
+    # Existing revolving estimate: (1/3) * 10,000 * 2% = $66.67.
+    # Direct Basis debt stays outstanding, so it costs 1,000 * 4% = $40.00.
+    assert_equal 106.67, summary[:dollars]
+    assert_equal 1.07, summary[:percent]
+  end
+
   test "returns nil when the initial amount is zero or negative" do
     assert_nil BasisTrade::BorrowCostCalculator.new(initial_amount: 0).summary
     assert_nil BasisTrade::BorrowCostCalculator.new(initial_amount: -100).summary
