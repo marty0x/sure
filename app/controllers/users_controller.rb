@@ -114,7 +114,16 @@ class UsersController < ApplicationController
     def user_params
       family_attrs = [ :name, :currency, :country, :date_format, :timezone, :locale, :month_start_day, :id ]
       if Current.user.admin?
-        family_attrs.push(:moniker, :default_account_sharing, :basis_long_address, :basis_long_token_addresses, :basis_lighter_address, :basis_borrow_repaid_usdc)
+        family_attrs.push(
+          :personal_budgets,
+          :household_budget_enabled,
+          :moniker,
+          :default_account_sharing,
+          :basis_long_address,
+          :basis_long_token_addresses,
+          :basis_lighter_address,
+          :basis_borrow_repaid_usdc
+        ) # Needed for updating existing family
         family_attrs << { enabled_currencies: [] }
       end
 
@@ -137,9 +146,11 @@ class UsersController < ApplicationController
       moniker_changed = family_attrs[:moniker].present? && family_attrs[:moniker] != Current.family.moniker
       sharing_changed = family_attrs[:default_account_sharing].present? && family_attrs[:default_account_sharing] != Current.family.default_account_sharing
       enabled_currencies_changed = family_attrs.key?(:enabled_currencies)
+      personal_budgets_changed = family_attrs.key?(:personal_budgets)
+      household_budget_enabled_changed = family_attrs.key?(:household_budget_enabled)
       basis_changed = %w[basis_long_address basis_long_token_addresses basis_lighter_address basis_borrow_repaid_usdc].any? { |key| family_attrs.key?(key) }
 
-      moniker_changed || sharing_changed || enabled_currencies_changed || basis_changed
+      moniker_changed || sharing_changed || enabled_currencies_changed || personal_budgets_changed || household_budget_enabled_changed || basis_changed
     end
 
     def ensure_admin
