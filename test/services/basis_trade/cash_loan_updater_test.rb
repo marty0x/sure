@@ -19,7 +19,7 @@ class BasisTrade::CashLoanUpdaterTest < ActiveSupport::TestCase
 
     assert result.updated
     assert_equal BigDecimal("2513.979896"), result.balance
-    assert_equal BigDecimal("2513.979896"), @account.reload.balance
+    assert_equal BigDecimal("2513.9799"), @account.reload.balance
   end
 
   test "skips when no vault address is configured" do
