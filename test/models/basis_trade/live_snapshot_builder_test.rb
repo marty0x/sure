@@ -47,7 +47,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     assert_equal BigDecimal("84.92"), result.snapshot.dig(:metadata, :rewards_basis, :usdc_balance)
   end
 
-  test "records direct Cash borrows less manual repayments as outstanding debt metadata" do
+  test "records the Cash Safe's live gateway debt as outstanding debt metadata" do
     @family.update!(
       basis_long_address: "0x1111111111111111111111111111111111111111",
       basis_long_token_addresses: "0x2222222222222222222222222222222222222222",
@@ -65,7 +65,7 @@ class BasisTrade::LiveSnapshotBuilderTest < ActiveSupport::TestCase
     result = described_class.new(family: @family).call
 
     assert_nil result.error
-    assert_equal 119_988, result.snapshot.dig(:metadata, :direct_borrow_outstanding_cents)
+    assert_equal 124_800, result.snapshot.dig(:metadata, :direct_borrow_outstanding_cents)
   end
 
   test "values weETH supplied by the Cash Safe through the Aave v4 Spoke" do
