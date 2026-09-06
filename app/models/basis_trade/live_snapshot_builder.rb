@@ -68,8 +68,8 @@ class BasisTrade::LiveSnapshotBuilder
     end
 
     def direct_borrow_outstanding_cents
-      debt_usd = BasisTrade::CashLoanReader.new.borrowed_usdc(vault_address: @family.basis_long_address)
-      dollars_to_cents(debt_usd)
+      borrowed_usdc = BasisTrade::CashLoanReader.new.borrowed_usdc(vault_address: @family.basis_long_address)
+      dollars_to_cents([ borrowed_usdc - @family.basis_borrow_repaid_usdc, BigDecimal("0") ].max)
     end
 
     def aave_v4_supplied_balances

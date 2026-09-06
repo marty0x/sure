@@ -10,7 +10,7 @@ class BasisTrade::CashLoanUpdaterTest < ActiveSupport::TestCase
     @account.update!(name: BasisTrade::CashLoanUpdater::LOAN_ACCOUNT_NAME)
   end
 
-  test "overwrites the ether.fi Credit balance from the Cash Safe's live gateway debt" do
+  test "overwrites the ether.fi Credit balance from direct borrows minus cumulative Basis repayments" do
     @family.update!(basis_borrow_repaid_usdc: BigDecimal("48.125"))
     reader = mock
     reader.expects(:borrowed_usdc).with(vault_address: @family.basis_long_address).returns(BigDecimal("248"))
@@ -18,8 +18,20 @@ class BasisTrade::CashLoanUpdaterTest < ActiveSupport::TestCase
     result = BasisTrade::CashLoanUpdater.new(family: @family, reader: reader).call
 
     assert result.updated
-    assert_equal BigDecimal("248"), result.balance
-    assert_equal BigDecimal("248"), @account.reload.balance
+    assert_equal BigDecimal("199.875"), result.balance
+    assert_equal BigDecimal("199.875"), @account.reload.balance
+  end
+
+  test "does not create a negative Basis debt when repayments exceed recorded direct borrows" do
+    @family.update!(basis_borrow_repaid_usdc: BigDecimal("300"))
+    reader = mock
+    reader.expects(:borrowed_usdc).with(vault_address: @family.basis_long_address).returns(BigDecimal("248"))
+
+    result = BasisTrade::CashLoanUpdater.new(family: @family, reader: reader).call
+
+    assert result.updated
+    assert_equal BigDecimal("0"), result.balance
+    assert_equal BigDecimal("0"), @account.reload.balance
   end
 
   test "skips when no vault address is configured" do
@@ -45,13 +57,13 @@ class BasisTrade::CashLoanUpdaterTest < ActiveSupport::TestCase
     assert_nil result.error
   end
 
-  test "captures an Optimism RPC error without raising" do
+  test "captures a logs API error without raising" do
     reader = mock
-    reader.expects(:borrowed_usdc).raises(StandardError, "Optimism RPC request failed with status 503")
+    reader.expects(:borrowed_usdc).raises(StandardError, "Optimism logs API error: rate limited")
 
     result = BasisTrade::CashLoanUpdater.new(family: @family, reader: reader).call
 
     assert_not result.updated
-    assert_equal "Optimism RPC request failed with status 503", result.error
+    assert_equal "Optimism logs API error: rate limited", result.error
   end
 end
