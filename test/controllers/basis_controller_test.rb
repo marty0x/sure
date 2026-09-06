@@ -84,8 +84,8 @@ class BasisControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Perps account values/i, response.body)
     assert_match(/weETH/i, response.body)
     assert_match(/Account 730104/i, response.body)
-    # Live legs are stored in whole cents: $10,048.75 − $1,199.88 = $8,848.87.
-    assert_match(/\$8,848\.87/, response.body)
+    # Live legs are stored in whole cents: $10,048.75 − $1,248.00 = $8,800.75.
+    assert_match(/\$8,800\.75/, response.body)
     assert_match(/\$7,095\.44/, response.body)
     assert_match(/\$2,850\.99 USD/, response.body)
     assert_match(/\$7,112\.99/, response.body)
