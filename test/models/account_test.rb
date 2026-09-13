@@ -16,10 +16,15 @@ class AccountTest < ActiveSupport::TestCase
     end
   end
 
-  test "default owner prefers a family admin before a super admin" do
+  test "default owner prefers the oldest family admin before a super admin" do
     family = families(:empty)
     admin = users(:empty)
     super_admin = users(:sure_support_staff)
+
+    # Fixtures without explicit created_at values tie, and PostgreSQL does not
+    # promise an order for ties. Establish the intended ordering explicitly.
+    admin.update_column(:created_at, 2.days.ago)
+    family.users.where(role: "admin").where.not(id: admin.id).update_all(created_at: 1.day.ago)
 
     Current.reset
 
