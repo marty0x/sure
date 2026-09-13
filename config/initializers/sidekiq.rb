@@ -63,12 +63,20 @@ end
 Sidekiq.configure_server do |config|
   config.redis = redis_config
 
-  # Initialize auto-sync scheduler when Sidekiq server starts
+  # Initialize the daily all-provider scheduler when the Sidekiq server starts.
   config.on(:startup) do
     AutoSyncScheduler.sync!
     Rails.logger.info("[AutoSyncScheduler] Initialized sync_all_accounts cron job")
   rescue => e
     Rails.logger.error("[AutoSyncScheduler] Failed to initialize: #{e.message}")
+  end
+
+  # Keep SimpleFIN ingestion responsive without re-running the family-wide sync.
+  config.on(:startup) do
+    SimplefinSyncScheduler.sync!
+    Rails.logger.info("[SimplefinSyncScheduler] Initialized sync_simplefin cron job")
+  rescue => e
+    Rails.logger.error("[SimplefinSyncScheduler] Failed to initialize: #{e.message}")
   end
 end
 
