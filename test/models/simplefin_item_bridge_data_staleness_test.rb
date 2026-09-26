@@ -25,6 +25,7 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         account_id: "acct-1",
         currency: "USD",
         account_type: "checking",
+        current_balance: 1000,
         balance_date: 5.days.ago
       )
 
@@ -47,6 +48,7 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         account_id: "acct-1",
         currency: "USD",
         account_type: "checking",
+        current_balance: 1000,
         balance_date: 1.day.ago
       )
 
@@ -61,7 +63,8 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         name: "Checking",
         account_id: "acct-1",
         currency: "USD",
-        account_type: "checking"
+        account_type: "checking",
+        current_balance: 1000
       )
 
       refute @item.reload.stale_sync_status[:stale]
@@ -76,6 +79,7 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         account_id: "acct-1",
         currency: "USD",
         account_type: "checking",
+        current_balance: 1000,
         balance_date: 10.days.ago
       )
       @item.simplefin_accounts.create!(
@@ -83,6 +87,7 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         account_id: "acct-2",
         currency: "USD",
         account_type: "checking",
+        current_balance: 1000,
         balance_date: 1.day.ago
       )
 
