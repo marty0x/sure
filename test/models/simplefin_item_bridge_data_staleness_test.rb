@@ -61,7 +61,8 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
       @item.simplefin_accounts.create!(
         name: "Checking",
         account_id: "acct-1",
-        currency: "USD"
+        currency: "USD",
+        account_type: "checking"
       )
 
       refute @item.reload.stale_sync_status[:stale]
