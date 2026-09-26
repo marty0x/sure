@@ -13,8 +13,7 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
     @item = SimplefinItem.create!(
       family: @family,
       name: "SF Conn",
-      access_url: "https://example.com/access",
-      last_synced_at: 1.hour.ago
+      access_url: "https://example.com/access"
     )
   end
 
