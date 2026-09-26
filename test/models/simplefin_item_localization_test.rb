@@ -133,8 +133,8 @@ class SimplefinItemLocalizationTest < ActiveSupport::TestCase
     assert I18n.t("simplefin_items.rate_limited.daily_refresh", locale: :de, fallback: false, default: nil).present?
     assert I18n.t("simplefin_items.stale_sync.last_successful", locale: :de, fallback: false, default: nil, count: 5).present?
     assert I18n.t("simplefin_items.stale_sync.no_transactions", locale: :de, fallback: false, default: nil, count: 20).present?
-    assert_equal "Deine Bankdaten von SimpleFIN sind 5 Tage alt. Melde dich in deiner SimpleFIN-Bridge an, um die Bankverbindung erneut zu authentifizieren und zu aktualisieren.",
-                 I18n.t("simplefin_items.stale_sync.bridge_data_old", locale: :de, fallback: false, default: nil, count: 5)
+    assert_equal "Die Bankdaten für Checking sind 5 Tage alt. Prüfe deine SimpleFIN-Bridge – die Bankverbindung muss ggf. erneut authentifiziert werden oder die Bridge hat sie noch nicht aktualisiert.",
+                 I18n.t("simplefin_items.stale_sync.bridge_data_old", locale: :de, fallback: false, default: nil, count: 5, accounts: "Checking")
   end
 
   private

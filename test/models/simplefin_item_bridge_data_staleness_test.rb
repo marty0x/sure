@@ -13,7 +13,8 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
     @item = SimplefinItem.create!(
       family: @family,
       name: "SF Conn",
-      access_url: "https://example.com/access"
+      access_url: "https://example.com/access",
+      last_synced_at: 1.hour.ago
     )
   end
 
@@ -24,6 +25,7 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         name: "Checking",
         account_id: "acct-1",
         currency: "USD",
+        account_type: "checking",
         balance_date: 5.days.ago
       )
 
@@ -45,6 +47,7 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         name: "Checking",
         account_id: "acct-1",
         currency: "USD",
+        account_type: "checking",
         balance_date: 1.day.ago
       )
 
@@ -72,12 +75,14 @@ class SimplefinItemBridgeDataStalenessTest < ActiveSupport::TestCase
         name: "Stale checking",
         account_id: "acct-1",
         currency: "USD",
+        account_type: "checking",
         balance_date: 10.days.ago
       )
       @item.simplefin_accounts.create!(
         name: "Fresh savings",
         account_id: "acct-2",
         currency: "USD",
+        account_type: "checking",
         balance_date: 1.day.ago
       )
 
