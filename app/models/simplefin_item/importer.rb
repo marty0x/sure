@@ -735,6 +735,23 @@ class SimplefinItem::Importer
         end
       end
 
+      # Protocol v2 reports structured per-connection errors in `errlist`
+      # (the v1 `errors` array is deprecated as of protocol v2.0.0). This must
+      # be inspected on every sync: when a bank session behind the bridge
+      # expires, the bridge keeps returning HTTP 200 with its last cached
+      # snapshot and surfaces the auth failure ONLY here. Ignoring it makes
+      # days-stale data look like a healthy sync.
+      if accounts_data[:errlist].is_a?(Array) && accounts_data[:errlist].any?
+        if accounts_data[:accounts].to_a.any?
+          # Partial failure: record errors for visibility but continue processing accounts
+          record_errors(accounts_data[:errlist])
+        else
+          # Global failure: no accounts were returned; treat as fatal
+          handle_errors(accounts_data[:errlist])
+          return nil
+        end
+      end
+
       accounts_data
     end
 
@@ -1012,7 +1029,8 @@ class SimplefinItem::Importer
         msg = if error.is_a?(String)
           error
         else
-          error[:description] || error[:message] || error[:error] || error.to_s
+          # v2 `errlist` entries use `msg`; v1 used `description`/`message`
+          error[:description] || error[:message] || error[:msg] || error[:error] || error.to_s
         end
         down = msg.to_s.downcase
         category = if down.include?("timeout") || down.include?("timed out")
@@ -1024,20 +1042,28 @@ class SimplefinItem::Importer
         else
           "other"
         end
+        if category == "auth"
+          # Tell the user the one action that actually unblocks a refresh:
+          # re-authenticating the bank connection in the bridge web UI.
+          msg = "#{msg} (Log in to your SimpleFIN bridge to re-authenticate the bank connection.)"
+        end
         register_error(message: msg, category: category)
       end
     end
 
     def handle_errors(errors)
-      error_messages = errors.map { |error| error.is_a?(String) ? error : (error[:description] || error[:message]) }.join(", ")
+      error_messages = errors.map { |error| error.is_a?(String) ? error : (error[:description] || error[:message] || error[:msg]) }.join(", ")
 
-      # Mark item as requiring update for authentication-related errors
+      # Mark item as requiring update for authentication-related errors.
+      # Covers v1 codes/strings and v2 `errlist` codes (`con.auth`, `gen.auth`).
       needs_update = errors.any? do |error|
         if error.is_a?(String)
           error.downcase.include?("reauthenticate") || error.downcase.include?("authentication")
         else
-          error[:code] == "auth_failure" || error[:code] == "token_expired" ||
-          error[:type] == "authentication_error"
+          code = error[:code].to_s
+          code == "auth_failure" || code == "token_expired" ||
+            code == "con.auth" || code == "gen.auth" ||
+            error[:type] == "authentication_error"
         end
       end
 

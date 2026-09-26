@@ -110,6 +110,7 @@ en:
     stale_sync:
       last_successful: "Last successful sync was %{count} days ago. Your SimpleFIN connection may need attention."
       no_transactions: "No new transactions in %{count} days. Check your SimpleFIN dashboard to ensure your bank connections are active."
+      bridge_data_old: "Bank data for %{accounts} is %{count} days old. Check your SimpleFIN bridge — the bank connection may need re-authentication, or the bridge may not have refreshed it yet."
     simplefin_item:
       add_new: Add new connection
       confirm_accept: Delete connection

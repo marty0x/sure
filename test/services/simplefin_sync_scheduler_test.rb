@@ -1,13 +1,13 @@
 require "test_helper"
 
 class SimplefinSyncSchedulerTest < ActiveSupport::TestCase
-  test "creates the SimpleFIN-only cron job every six hours" do
+  test "creates the SimpleFIN-only cron job every twelve hours" do
     cron_job = mock("simplefin_cron_job")
     cron_job.stubs(:valid?).returns(true)
 
     Sidekiq::Cron::Job.expects(:create).with(
       name: "sync_simplefin",
-      cron: "17 */6 * * *",
+      cron: "17 */12 * * *",
       class: "SyncSimplefinJob",
       queue: "scheduled",
       description: "Syncs active SimpleFIN items without running the family-wide sync"

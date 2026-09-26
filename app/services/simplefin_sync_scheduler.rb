@@ -1,6 +1,6 @@
 class SimplefinSyncScheduler
   JOB_NAME = "sync_simplefin"
-  CRON = "17 */6 * * *"
+  CRON = "17 */12 * * *"
   DESCRIPTION = "Syncs active SimpleFIN items without running the family-wide sync"
 
   def self.sync!

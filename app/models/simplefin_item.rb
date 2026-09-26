@@ -396,6 +396,34 @@ class SimplefinItem < ApplicationRecord
       }
     end
 
+    # Check if the bridge's own bank data is stale. The bridge's per-account
+    # balance-date is the bank-data timestamp — a healthy bridge refreshes it
+    # roughly daily. A bridge "OK" status only means the bank credentials are
+    # valid; the bridge can still serve a days-old cached snapshot while the
+    # app's syncs keep "succeeding", so this check runs even when the sync
+    # reports no errors. Evaluated per account so one stale institution can't
+    # hide behind other fresh ones on a multi-institution item.
+    stale_bridge_accounts = simplefin_accounts
+      .where.not(balance_date: nil)
+      .to_a
+      .select { |account| (Date.current - account.balance_date.to_date).to_i > 2 }
+      .sort_by(&:balance_date)
+
+    if stale_bridge_accounts.any?
+      oldest = stale_bridge_accounts.first
+      days_since_bridge_data = (Date.current - oldest.balance_date.to_date).to_i
+      return {
+        stale: true,
+        days_since_bridge_data: days_since_bridge_data,
+        stale_bridge_account_names: stale_bridge_accounts.map(&:name),
+        message: I18n.t(
+          "simplefin_items.stale_sync.bridge_data_old",
+          count: days_since_bridge_data,
+          accounts: stale_bridge_accounts.map(&:name).to_sentence
+        )
+      }
+    end
+
     # Check if linked accounts have recent transactions
     linked_accounts = accounts
     return { stale: false } if linked_accounts.empty?
