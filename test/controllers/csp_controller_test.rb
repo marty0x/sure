@@ -26,7 +26,7 @@ class CspControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders with bucket assignments" do
-    category = @family.categories.create!(name: "Csp Test Rent #{SecureRandom.hex(3)}", color: "#ff0000", classification: "expense")
+    category = @family.categories.create!(name: "Csp Test Rent #{SecureRandom.hex(3)}", color: "#ff0000", lucide_icon: "shapes")
     category.update!(csp_bucket: "fixed_costs")
 
     get csp_path
@@ -36,7 +36,7 @@ class CspControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "saves bucket assignments via patch" do
-    category = @family.categories.create!(name: "Csp Test Fun #{SecureRandom.hex(3)}", color: "#00ff00", classification: "expense")
+    category = @family.categories.create!(name: "Csp Test Fun #{SecureRandom.hex(3)}", color: "#00ff00", lucide_icon: "shapes")
 
     patch csp_buckets_path, params: { csp_buckets: { category.id => "guilt_free" } }
 
