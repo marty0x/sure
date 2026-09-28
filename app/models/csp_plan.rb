@@ -115,6 +115,11 @@ class CspPlan
     @transfer_actuals.fetch(bucket_key, []).sum(&:net)
   end
 
+  def transfer_count_for(bucket_key)
+    @transfer_counts ||= transfer_rows.group_by { |row| row.account.csp_bucket }
+    @transfer_counts.fetch(bucket_key, []).count
+  end
+
   private
     def transfer_scope
       Transaction
@@ -125,12 +130,6 @@ class CspPlan
         .where(entries: { date: @budget.start_date..@budget.end_date, excluded: false })
     end
 
-  def transfer_count_for(bucket_key)
-    @transfer_counts ||= transfer_rows.group_by { |row| row.account.csp_bucket }
-    @transfer_counts.fetch(bucket_key, []).count
-  end
-
-  private
     def build_bucket(key)
       matches = top_level_budget_categories.select { |bc| bc.category.csp_bucket_effective == key }
       actual = matches.sum { |bc| bc.actual_spending.to_d } + transfer_actual_for(key)
