@@ -79,18 +79,22 @@ class CspPlan
         .group("accounts.id")
         .sum("entries.amount")
 
-      # Investment contributions auto-import as kind investment_contribution.
-      # On taxable accounts those are already budget spending via their
-      # category, so counting them here would double count -- but on
-      # tax-advantaged accounts (401k, IRA, HSA) the budget excludes the
-      # account entirely, so they must be counted here or they vanish.
+      # Investment activity on tax-advantaged accounts (401k, IRA, HSA) is
+      # invisible to the budget -- the income statement excludes these
+      # accounts entirely -- so every unmatched Contribution/Withdrawal here
+      # must be counted in the account net or it vanishes. The kind filter is
+      # deliberately absent: the importer usually assigns investment_contribution,
+      # but whatever the kind, nothing on these accounts can double count
+      # against budget category actuals. Kinds already covered by the first
+      # query (standard, one_time, funds_movement) are excluded to avoid
+      # counting them twice.
       tax_advantaged_ids = @budget.family.tax_advantaged_account_ids
       if tax_advantaged_ids.present?
         investment_nets = transfer_scope
           .where(accounts: { id: tax_advantaged_ids })
           .where(
             "transactions.investment_activity_label IN ('Contribution', 'Withdrawal') " \
-            "AND transactions.kind = 'investment_contribution' " \
+            "AND transactions.kind NOT IN ('standard', 'one_time', 'funds_movement') " \
             "AND NOT EXISTS (SELECT 1 FROM transfers WHERE transfers.inflow_transaction_id = transactions.id " \
             "OR transfers.outflow_transaction_id = transactions.id)"
           )

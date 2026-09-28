@@ -287,6 +287,30 @@ class CspPlanTest < ActiveSupport::TestCase
       plan.transfer_rows.to_h { |row| [ row.account.name, row.net ] })
   end
 
+  test "includes tax-advantaged contributions regardless of transaction kind" do
+    # The budget excludes tax-advantaged accounts entirely, so no kind of
+    # Contribution/Withdrawal there can double count -- the plan must pick
+    # them up whatever kind the importer assigned.
+    k401 = @family.accounts.create!(
+      name: "401k", balance: 0, currency: "USD",
+      accountable: Investment.new(subtype: "401k"), csp_bucket: "investments"
+    )
+
+    Entry.create!(
+      account: k401,
+      entryable: Transaction.create!(kind: "other", investment_activity_label: "Withdrawal"),
+      date: Date.current,
+      name: "Withdrawal - withdrawal",
+      amount: 100,
+      currency: "USD"
+    )
+
+    plan = CspPlan.new(@budget.reload)
+
+    assert_equal({ "401k" => -100 },
+      plan.transfer_rows.to_h { |row| [ row.account.name, row.net ] })
+  end
+
   private
     def create_category!(name, parent: nil, csp_bucket: nil)
       Category.create!(
