@@ -190,8 +190,10 @@ class CspPlanTest < ActiveSupport::TestCase
     # transfer pair. The importer auto-assigns kind investment_contribution
     # with a Contribution activity label; on a tax-advantaged account the
     # budget excludes it, so the plan must count it here.
-    k401 = @family.accounts.create!(name: "401k", balance: 0, currency: "USD",
-      accountable: Investment.new(subtype: "401k"), csp_bucket: "investments")
+    k401 = @family.accounts.create!(
+      name: "401k", balance: 0, currency: "USD",
+      accountable: Investment.new(subtype: "401k"), csp_bucket: "investments"
+    )
     paycheck = create_category!("Paycheck")
 
     @budget.sync_budget_categories
@@ -244,8 +246,10 @@ class CspPlanTest < ActiveSupport::TestCase
     # On a taxable account, properly classified contributions are already
     # budget spending via their category; counting them in the account net
     # too would double count.
-    brokerage = @family.accounts.create!(name: "Brokerage", balance: 0, currency: "USD",
-      accountable: Investment.new(subtype: "brokerage"), csp_bucket: "investments")
+    brokerage = @family.accounts.create!(
+      name: "Brokerage", balance: 0, currency: "USD",
+      accountable: Investment.new(subtype: "brokerage"), csp_bucket: "investments"
+    )
 
     Entry.create!(
       account: brokerage,
@@ -263,8 +267,10 @@ class CspPlanTest < ActiveSupport::TestCase
 
   test "includes standard-kind unmatched contributions to assigned accounts" do
     # Manually entered (non-imported) direct contributions keep kind standard.
-    k401 = @family.accounts.create!(name: "401k", balance: 0, currency: "USD",
-      accountable: Investment.new(subtype: "401k"), csp_bucket: "investments")
+    k401 = @family.accounts.create!(
+      name: "401k", balance: 0, currency: "USD",
+      accountable: Investment.new(subtype: "401k"), csp_bucket: "investments"
+    )
 
     Entry.create!(
       account: k401,
