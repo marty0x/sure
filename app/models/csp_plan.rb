@@ -68,6 +68,19 @@ class CspPlan
   # increases its bucket, money pulled back out reduces it.
   def transfer_rows
     @transfer_rows ||= begin
+      # Investment contributions auto-import as kind investment_contribution.
+      # On taxable accounts those are already budget spending via their
+      # category, so counting them here would double count -- but on
+      # tax-advantaged accounts (401k, IRA, HSA) the budget excludes the
+      # account entirely, so they must be counted here or they vanish.
+      tax_advantaged_ids = @budget.family.tax_advantaged_account_ids
+      contribution_kind_sql =
+        if tax_advantaged_ids.present?
+          sanitize_kind_sql(tax_advantaged_ids)
+        else
+          "transactions.kind IN ('standard', 'one_time')"
+        end
+
       nets = Transaction
         .excluding_pending
         .joins("INNER JOIN entries ON entries.entryable_id = transactions.id AND entries.entryable_type = 'Transaction'")
@@ -77,9 +90,9 @@ class CspPlan
         .where(
           "transactions.kind = 'funds_movement' OR (" \
           "transactions.investment_activity_label IN ('Contribution', 'Withdrawal') " \
-          "AND transactions.kind IN ('standard', 'one_time') " \
           "AND NOT EXISTS (SELECT 1 FROM transfers WHERE transfers.inflow_transaction_id = transactions.id " \
-          "OR transfers.outflow_transaction_id = transactions.id))"
+          "OR transfers.outflow_transaction_id = transactions.id) " \
+          "AND #{contribution_kind_sql})"
         )
         .group("accounts.id")
         .sum("entries.amount")
@@ -98,6 +111,15 @@ class CspPlan
     @transfer_actuals ||= transfer_rows.group_by { |row| row.account.csp_bucket }
     @transfer_actuals.fetch(bucket_key, []).sum(&:net)
   end
+
+  private
+    def sanitize_kind_sql(tax_advantaged_ids)
+      ActiveRecord::Base.sanitize_sql_array([
+        "(transactions.kind IN ('standard', 'one_time') " \
+        "OR (transactions.kind = 'investment_contribution' AND accounts.id IN (?)))",
+        tax_advantaged_ids
+      ])
+    end
 
   def transfer_count_for(bucket_key)
     @transfer_counts ||= transfer_rows.group_by { |row| row.account.csp_bucket }
