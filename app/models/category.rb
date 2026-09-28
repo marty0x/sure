@@ -1,4 +1,24 @@
 class Category < ApplicationRecord
+  # Ramit Sethi's Conscious Spending Plan buckets. Assigned once per category
+  # (subcategories inherit their parent's bucket unless overridden) and read
+  # by the CSP tab to group the month's budget actuals.
+  enum :csp_bucket, {
+    fixed_costs: "fixed_costs",
+    investments: "investments",
+    savings: "savings",
+    guilt_free: "guilt_free"
+  }
+
+  # Target bands as % of take-home pay, per "I Will Teach You To Be Rich".
+  CSP_BUCKETS = {
+    "fixed_costs" => { min: 50, max: 60 },
+    "investments" => { min: 10, max: nil },
+    "savings" => { min: 5, max: 10 },
+    "guilt_free" => { min: 20, max: 35 }
+  }.freeze
+
+  CSP_BUCKET_KEYS = CSP_BUCKETS.keys.freeze
+
   has_many :transactions, dependent: :nullify, class_name: "Transaction"
   has_many :import_mappings, as: :mappable, dependent: :destroy, class_name: "Import::Mapping"
 
@@ -381,6 +401,12 @@ class Category < ApplicationRecord
   # Predicate: is this any synthetic (non-persisted) category?
   def synthetic?
     uncategorized? || other_investments?
+  end
+
+  # Effective CSP bucket: a subcategory inherits its parent's bucket unless
+  # it has its own. Keeps setup to one assignment per top-level category.
+  def csp_bucket_effective
+    csp_bucket.presence || parent&.csp_bucket.presence
   end
 
   private

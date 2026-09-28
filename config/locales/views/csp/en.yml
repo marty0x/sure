@@ -1,0 +1,42 @@
+---
+en:
+  csp:
+    buckets:
+      fixed_costs: Fixed costs
+      investments: Investments
+      savings: Savings
+      guilt_free: Guilt-free spending
+    bands:
+      fixed_costs: "50–60% of take-home pay"
+      investments: "10%+ of take-home pay"
+      savings: "5–10% of take-home pay"
+      guilt_free: "20–35% of take-home pay"
+    show:
+      title: Conscious Spending Plan
+      subtitle: Ramit Sethi's Conscious Spending Plan — your budget actuals grouped into four buckets, as a share of this month's take-home pay.
+      take_home: Take-home pay
+      of_take_home: "%{percent}% of take-home"
+      categories_count:
+        one: "%{count} category"
+        other: "%{count} categories"
+      status:
+        on_track: On track
+        below: Below target
+        above: Over target
+      this_month: This month
+      prev_month: Previous month
+      next_month: Next month
+      unassigned:
+        title: Unassigned spending
+        body: "%{amount} (%{percent}% of take-home) isn't in any bucket yet, so the buckets above don't add up to your full month. Assign every category below and these numbers tell the whole story."
+        empty: Every category is assigned to a bucket. Nice.
+      setup:
+        title: Bucket assignments
+        subtitle: Earmark each budget category to a Ramit bucket once — the assignment sticks for every month. Subcategories inherit their parent's bucket unless you override them.
+        category: Category
+        spent_this_month: Spent this month
+        bucket: Bucket
+        unassigned_option: Unassigned
+        save: Save buckets
+      update_buckets:
+        success: Bucket assignments saved.

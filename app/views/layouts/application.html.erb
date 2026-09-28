@@ -13,6 +13,7 @@ else
     { name: t(".nav.reports"), path: reports_path, icon: "chart-bar", icon_custom: false, active: page_active?(reports_path) },
 plan_nav_item,
     preview_gated_nav_item({ name: t(".nav.basis"), path: basis_path, icon: "scale", icon_custom: false, active: page_active?(basis_path) }),
+    preview_gated_nav_item({ name: t(".nav.csp"), path: csp_path, icon: "wallet", icon_custom: false, active: page_active?(csp_path) }),
     { name: t(".nav.assistant"), path: chats_path, icon: "icon-assistant", icon_custom: true, active: page_active?(chats_path), mobile_only: true }
   ].compact
 end %>

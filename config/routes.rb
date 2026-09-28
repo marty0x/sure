@@ -466,6 +466,10 @@ Rails.application.routes.draw do
 
   resource :basis, only: :show, controller: "basis"
 
+  get "csp", to: "csp#show", as: :csp
+  get "csp/:month_year", to: "csp#show"
+  patch "csp/buckets", to: "csp#update_buckets", as: :csp_buckets
+
   resources :family_merchants, only: %i[index new create edit update destroy] do
     collection do
       get :merge
