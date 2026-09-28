@@ -38,7 +38,7 @@ class CspControllerTest < ActionDispatch::IntegrationTest
   test "saves bucket assignments via patch" do
     category = @family.categories.create!(name: "Csp Test Fun #{SecureRandom.hex(3)}", color: "#00ff00", lucide_icon: "shapes")
 
-    patch csp_buckets_path, params: { csp_buckets: { category.id => "guilt_free" } }
+    patch csp_buckets_path, params: { category_buckets: { category.id => "guilt_free" } }
 
     assert_redirected_to csp_path
     assert_equal "guilt_free", category.reload.csp_bucket
