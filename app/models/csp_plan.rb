@@ -68,34 +68,37 @@ class CspPlan
   # increases its bucket, money pulled back out reduces it.
   def transfer_rows
     @transfer_rows ||= begin
+      nets = transfer_scope
+        .where(
+          "transactions.kind = 'funds_movement' OR (" \
+          "transactions.investment_activity_label IN ('Contribution', 'Withdrawal') " \
+          "AND transactions.kind IN ('standard', 'one_time') " \
+          "AND NOT EXISTS (SELECT 1 FROM transfers WHERE transfers.inflow_transaction_id = transactions.id " \
+          "OR transfers.outflow_transaction_id = transactions.id))"
+        )
+        .group("accounts.id")
+        .sum("entries.amount")
+
       # Investment contributions auto-import as kind investment_contribution.
       # On taxable accounts those are already budget spending via their
       # category, so counting them here would double count -- but on
       # tax-advantaged accounts (401k, IRA, HSA) the budget excludes the
       # account entirely, so they must be counted here or they vanish.
       tax_advantaged_ids = @budget.family.tax_advantaged_account_ids
-      contribution_kind_sql =
-        if tax_advantaged_ids.present?
-          sanitize_kind_sql(tax_advantaged_ids)
-        else
-          "transactions.kind IN ('standard', 'one_time')"
-        end
+      if tax_advantaged_ids.present?
+        investment_nets = transfer_scope
+          .where(accounts: { id: tax_advantaged_ids })
+          .where(
+            "transactions.investment_activity_label IN ('Contribution', 'Withdrawal') " \
+            "AND transactions.kind = 'investment_contribution' " \
+            "AND NOT EXISTS (SELECT 1 FROM transfers WHERE transfers.inflow_transaction_id = transactions.id " \
+            "OR transfers.outflow_transaction_id = transactions.id)"
+          )
+          .group("accounts.id")
+          .sum("entries.amount")
+        nets = nets.merge(investment_nets) { |_account_id, a, b| a + b }
+      end
 
-      nets = Transaction
-        .excluding_pending
-        .joins("INNER JOIN entries ON entries.entryable_id = transactions.id AND entries.entryable_type = 'Transaction'")
-        .joins("INNER JOIN accounts ON accounts.id = entries.account_id")
-        .where(accounts: { family_id: @budget.family_id })
-        .where(entries: { date: @budget.start_date..@budget.end_date, excluded: false })
-        .where(
-          "transactions.kind = 'funds_movement' OR (" \
-          "transactions.investment_activity_label IN ('Contribution', 'Withdrawal') " \
-          "AND NOT EXISTS (SELECT 1 FROM transfers WHERE transfers.inflow_transaction_id = transactions.id " \
-          "OR transfers.outflow_transaction_id = transactions.id) " \
-          "AND #{contribution_kind_sql})"
-        )
-        .group("accounts.id")
-        .sum("entries.amount")
       accounts = Account.where(id: nets.keys).index_by(&:id)
       nets.filter_map do |account_id, net|
         net = -net.to_d
@@ -113,12 +116,13 @@ class CspPlan
   end
 
   private
-    def sanitize_kind_sql(tax_advantaged_ids)
-      ActiveRecord::Base.sanitize_sql_array([
-        "(transactions.kind IN ('standard', 'one_time') " \
-        "OR (transactions.kind = 'investment_contribution' AND accounts.id IN (?)))",
-        tax_advantaged_ids
-      ])
+    def transfer_scope
+      Transaction
+        .excluding_pending
+        .joins("INNER JOIN entries ON entries.entryable_id = transactions.id AND entries.entryable_type = 'Transaction'")
+        .joins("INNER JOIN accounts ON accounts.id = entries.account_id")
+        .where(accounts: { family_id: @budget.family_id })
+        .where(entries: { date: @budget.start_date..@budget.end_date, excluded: false })
     end
 
   def transfer_count_for(bucket_key)
