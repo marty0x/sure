@@ -56,9 +56,11 @@ class CspControllerTest < ActionDispatch::IntegrationTest
   test "rejects unknown account buckets" do
     account = @family.accounts.create!(name: "Csp Test HSA #{SecureRandom.hex(3)}", balance: 0, currency: "USD", accountable: Depository.new)
 
-    assert_raises(ActionController::BadRequest) do
-      patch csp_buckets_path, params: { account_buckets: { account.id => "nope" } }
-    end
+    patch csp_buckets_path, params: { account_buckets: { account.id => "nope" } }
+
+    # BadRequest is rescuable, so the test env renders it as a 400 response
+    # rather than raising.
+    assert_response :bad_request
     assert_nil account.reload.csp_bucket
   end
 end
