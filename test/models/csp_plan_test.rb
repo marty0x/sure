@@ -344,4 +344,20 @@ class CspPlanTest < ActiveSupport::TestCase
         currency: "USD"
       )
     end
+
+  test "uses manual take-home pay override when set" do
+    @family.update!(csp_take_home_pay: 8500)
+
+    plan = CspPlan.new(@budget)
+
+    assert_equal 8500, plan.income
+    assert plan.manual_income?
+  end
+
+  test "falls back to budget income when no manual override" do
+    plan = CspPlan.new(@budget)
+
+    assert_equal @budget.actual_income.to_d, plan.income
+    assert_not plan.manual_income?
+  end
 end

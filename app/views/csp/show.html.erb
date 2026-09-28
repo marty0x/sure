@@ -29,6 +29,19 @@
     <div class="bg-container rounded-xl shadow-border-xs px-5 py-3">
       <p class="text-[11px] font-medium uppercase tracking-wide text-secondary"><%= t(".take_home") %></p>
       <p class="text-xl font-medium text-primary tabular-nums privacy-sensitive"><%= format_money(Money.new(@plan.income, @budget.family.currency)) %></p>
+      <% if @plan.manual_income? %>
+        <p class="text-[11px] text-secondary mt-0.5"><%= t(".take_home_manual") %></p>
+      <% end %>
+      <details class="mt-2">
+        <summary class="text-xs text-secondary cursor-pointer hover:text-primary"><%= t(".take_home_edit") %></summary>
+        <%= form_with url: csp_take_home_pay_path(month_year: @budget.to_param), method: :patch, class: "mt-2 flex items-center gap-2" do |f| %>
+          <%= f.number_field :take_home_pay, value: @budget.family.csp_take_home_pay,
+                step: "0.01", min: "0", placeholder: t(".take_home_placeholder"),
+                class: "w-32 rounded-md border border-primary bg-container-inset px-2 py-1 text-sm text-primary tabular-nums" %>
+          <%= f.submit t(".take_home_save"), class: "rounded-md bg-primary px-3 py-1 text-sm font-medium text-white hover:opacity-90" %>
+        <% end %>
+        <p class="text-[11px] text-secondary mt-1"><%= t(".take_home_hint") %></p>
+      </details>
     </div>
   </div>
 

@@ -15,6 +15,11 @@ en:
       title: Conscious Spending Plan
       subtitle: Ramit Sethi's Conscious Spending Plan — your budget actuals grouped into four buckets, as a share of this month's take-home pay.
       take_home: Take-home pay
+      take_home_manual: Manual override
+      take_home_edit: Set manually
+      take_home_placeholder: e.g. 8500.00
+      take_home_save: Save
+      take_home_hint: Gross pay minus taxes — includes 401k, HSA, and employer match. Leave blank to use budget income.
       of_take_home: "%{percent}% of take-home"
       categories_count:
         one: "%{count} category"
@@ -50,3 +55,6 @@ en:
         save: Save buckets
     update_buckets:
       success: Bucket assignments saved.
+    update_take_home_pay:
+      success: Take-home pay saved.
+      invalid: Please enter a valid amount.

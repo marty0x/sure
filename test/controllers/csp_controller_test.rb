@@ -63,4 +63,27 @@ class CspControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
     assert_nil account.reload.csp_bucket
   end
+
+  test "saves manual take-home pay" do
+    patch csp_take_home_pay_path, params: { take_home_pay: "8500.00" }
+
+    assert_redirected_to csp_path(month_year: Budget.date_to_param(Date.current))
+    assert_equal 8500, @family.reload.csp_take_home_pay
+  end
+
+  test "clears manual take-home pay when blank" do
+    @family.update!(csp_take_home_pay: 8500)
+
+    patch csp_take_home_pay_path, params: { take_home_pay: "" }
+
+    assert_redirected_to csp_path(month_year: Budget.date_to_param(Date.current))
+    assert_nil @family.reload.csp_take_home_pay
+  end
+
+  test "rejects invalid take-home pay" do
+    patch csp_take_home_pay_path, params: { take_home_pay: "abc" }
+
+    assert_redirected_to csp_path(month_year: Budget.date_to_param(Date.current))
+    assert_nil @family.reload.csp_take_home_pay
+  end
 end

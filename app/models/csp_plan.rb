@@ -22,7 +22,12 @@ class CspPlan
   end
 
   def income
-    @income ||= @budget.actual_income.to_d
+    @income ||= (@budget.family.csp_take_home_pay.presence || @budget.actual_income).to_d
+  end
+
+  # True when the user has set a manual take-home pay override.
+  def manual_income?
+    @budget.family.csp_take_home_pay.present?
   end
 
   def buckets

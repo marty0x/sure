@@ -469,6 +469,7 @@ Rails.application.routes.draw do
   get "csp", to: "csp#show", as: :csp
   get "csp/:month_year", to: "csp#show"
   patch "csp/buckets", to: "csp#update_buckets", as: :csp_buckets
+  patch "csp/take_home_pay", to: "csp#update_take_home_pay", as: :csp_take_home_pay
 
   resources :family_merchants, only: %i[index new create edit update destroy] do
     collection do

@@ -2,7 +2,7 @@ class CspController < ApplicationController
   include BudgetOwnership
 
   before_action :require_preview_features!
-  before_action :set_budget, only: %i[show update_buckets]
+  before_action :set_budget, only: %i[show update_buckets update_take_home_pay]
 
   def show
     @plan = CspPlan.new(@budget)
@@ -33,6 +33,18 @@ class CspController < ApplicationController
       end
     end
 
+    redirect_to csp_path(month_year: @budget.to_param, **budget_owner_query), notice: t(".success")
+  end
+
+  # Saves the manual take-home pay override. Stored on the family (not the
+  # monthly budget) so one value covers every month. Blank clears it.
+  def update_take_home_pay
+    amount = params[:take_home_pay].presence
+    if amount && !(amount.to_s =~ /\A\d+(\.\d{1,2})?\z/)
+      redirect_to csp_path(month_year: @budget.to_param, **budget_owner_query), alert: t(".invalid") and return
+    end
+
+    Current.family.update!(csp_take_home_pay: amount)
     redirect_to csp_path(month_year: @budget.to_param, **budget_owner_query), notice: t(".success")
   end
 

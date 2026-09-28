@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -805,6 +805,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000001) do
     t.text "basis_long_token_addresses"
     t.string "bills_feed_token"
     t.string "country", default: "US"
+    t.decimal "csp_take_home_pay", precision: 14, scale: 2
     t.datetime "created_at", null: false
     t.string "currency", default: "USD"
     t.boolean "data_enrichment_enabled", default: false
