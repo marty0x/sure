@@ -57,11 +57,11 @@ class CspPlan
   # - funds_movement transfers between accounts (excluded from budgets), and
   # - direct contributions/withdrawals that never touch another account
   #   (e.g. payroll 401k contributions). These carry an investment activity
-  #   label of Contribution/Withdrawal; only unmatched ones (transfer_id NULL)
-  #   are counted, so a transfer-matched pair isn't double counted against
-  #   its budgeted bank-side outflow. Kinds already treated as budgeted
-  #   expenses (investment_contribution, loan_payment, cc_payment) are left
-  #   out for the same reason.
+  #   label of Contribution/Withdrawal; only ones that aren't a leg of a
+  #   transfer pair are counted, so a transfer-matched pair isn't double
+  #   counted against its budgeted bank-side outflow. Kinds already treated
+  #   as budgeted expenses (investment_contribution, loan_payment, cc_payment)
+  #   are left out for the same reason.
   #
   # Signed: Sure stores inflows as negative entry amounts and outflows as
   # positive, so the sum is negated — money into an assigned account
@@ -78,7 +78,8 @@ class CspPlan
           "transactions.kind = 'funds_movement' OR (" \
           "transactions.investment_activity_label IN ('Contribution', 'Withdrawal') " \
           "AND transactions.kind IN ('standard', 'one_time') " \
-          "AND transactions.transfer_id IS NULL)"
+          "AND NOT EXISTS (SELECT 1 FROM transfers WHERE transfers.inflow_transaction_id = transactions.id " \
+          "OR transfers.outflow_transaction_id = transactions.id))"
         )
         .group("accounts.id")
         .sum("entries.amount")
