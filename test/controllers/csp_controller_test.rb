@@ -40,7 +40,7 @@ class CspControllerTest < ActionDispatch::IntegrationTest
 
     patch csp_buckets_path, params: { category_buckets: { category.id => "guilt_free" } }
 
-    assert_redirected_to csp_path
+    assert_redirected_to csp_path(month_year: Budget.date_to_param(Date.current))
     assert_equal "guilt_free", category.reload.csp_bucket
   end
 end

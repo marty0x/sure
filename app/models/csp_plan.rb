@@ -59,11 +59,6 @@ class CspPlan
       )
     end
 
-    def top_level_budget_categories
-      @top_level_budget_categories ||=
-        @budget.budget_categories.includes(:category).select { |bc| bc.category.parent_id.nil? }
-    end
-
     def percent_of_income(amount)
       return 0.to_d if income.zero?
 
