@@ -298,7 +298,7 @@ class CspPlanTest < ActiveSupport::TestCase
 
     Entry.create!(
       account: k401,
-      entryable: Transaction.create!(kind: "other", investment_activity_label: "Withdrawal"),
+      entryable: Transaction.create!(kind: "cc_payment", investment_activity_label: "Withdrawal"),
       date: Date.current,
       name: "Withdrawal - withdrawal",
       amount: 100,
