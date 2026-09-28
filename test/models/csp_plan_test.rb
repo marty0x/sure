@@ -2,8 +2,16 @@ require "test_helper"
 
 class CspPlanTest < ActiveSupport::TestCase
   def setup
-    @family = families(:dylan_family)
-    @account = accounts(:depository)
+    # Fresh family per test: fixture families carry seeded categories and
+    # entries (e.g. a -100 transfer that reads as income) which would leak
+    # into the plan's family-wide totals.
+    @family = Family.create!
+    @account = @family.accounts.create!(
+      name: "Checking",
+      balance: 0,
+      currency: "USD",
+      accountable: Depository.new
+    )
     @budget = Budget.find_or_bootstrap(@family, start_date: Date.current.beginning_of_month)
   end
 
@@ -97,7 +105,7 @@ class CspPlanTest < ActiveSupport::TestCase
 
     plan = CspPlan.new(@budget.reload)
 
-    assert_equal [ "Mystery", "Paycheck" ].sort, plan.unassigned_budget_categories.map { |bc| bc.category.name }.sort
+    assert_equal [ mystery.name, paycheck.name ].sort, plan.unassigned_budget_categories.map { |bc| bc.category.name }.sort
     assert_equal 300, plan.unassigned_actual
     assert_equal 15.0, plan.unassigned_percent
   end
