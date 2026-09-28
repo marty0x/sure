@@ -8,9 +8,11 @@
 #
 # Account-to-account transfers (kind funds_movement) are excluded from budget
 # analytics, so they never appear in the category buckets above. The plan
-# also totals each account's net transfers for the month; accounts assigned
-# a bucket via Account#csp_bucket (e.g. HSA -> savings, 401k -> investments)
-# have their net added into that bucket.
+# also totals each account's net transfers for the month, plus direct
+# contributions/withdrawals that never touch another account (e.g. payroll
+# 401k contributions); accounts assigned a bucket via Account#csp_bucket
+# (e.g. HSA -> savings, 401k -> investments) have their net added into
+# that bucket.
 class CspPlan
   Bucket = Data.define(:key, :actual, :percent, :band_min, :band_max, :status, :category_count, :transfer_count)
   TransferRow = Data.define(:account, :net)
@@ -48,23 +50,41 @@ class CspPlan
       @budget.budget_categories.includes(:category).select { |bc| bc.category.parent_id.nil? }
   end
 
-  # Net funds_movement per account for the budget month, excluding zero-net
-  # accounts. Signed: inflows positive, outflows negative, so money pulled
-  # back out of an account correctly reduces its bucket.
+  # Net per account for the budget month, excluding zero-net accounts.
+  #
+  # Two kinds of flows are invisible to budget analytics, so accounts need an
+  # explicit bucket assignment for them to appear in the plan:
+  # - funds_movement transfers between accounts (excluded from budgets), and
+  # - direct contributions/withdrawals that never touch another account
+  #   (e.g. payroll 401k contributions). These carry an investment activity
+  #   label of Contribution/Withdrawal; only unmatched ones (transfer_id NULL)
+  #   are counted, so a transfer-matched pair isn't double counted against
+  #   its budgeted bank-side outflow. Kinds already treated as budgeted
+  #   expenses (investment_contribution, loan_payment, cc_payment) are left
+  #   out for the same reason.
+  #
+  # Signed: Sure stores inflows as negative entry amounts and outflows as
+  # positive, so the sum is negated — money into an assigned account
+  # increases its bucket, money pulled back out reduces it.
   def transfer_rows
     @transfer_rows ||= begin
       nets = Transaction
         .excluding_pending
         .joins("INNER JOIN entries ON entries.entryable_id = transactions.id AND entries.entryable_type = 'Transaction'")
         .joins("INNER JOIN accounts ON accounts.id = entries.account_id")
-        .where(kind: "funds_movement")
         .where(accounts: { family_id: @budget.family_id })
         .where(entries: { date: @budget.start_date..@budget.end_date, excluded: false })
+        .where(
+          "transactions.kind = 'funds_movement' OR (" \
+          "transactions.investment_activity_label IN ('Contribution', 'Withdrawal') " \
+          "AND transactions.kind IN ('standard', 'one_time') " \
+          "AND transactions.transfer_id IS NULL)"
+        )
         .group("accounts.id")
         .sum("entries.amount")
       accounts = Account.where(id: nets.keys).index_by(&:id)
       nets.filter_map do |account_id, net|
-        net = net.to_d
+        net = -net.to_d
         next if net.zero?
 
         TransferRow.new(account: accounts[account_id], net: net)

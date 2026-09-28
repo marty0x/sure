@@ -129,9 +129,9 @@ class CspPlanTest < ActiveSupport::TestCase
     @budget.sync_budget_categories
     create_entry!(category: paycheck, amount: -4000)
 
-    create_transfer!(account: hsa, amount: 300)
-    create_transfer!(account: k401, amount: 500)
-    create_transfer!(account: @account, amount: -800) # funding side, unassigned
+    create_transfer!(account: hsa, amount: -300) # inbound: negative entry amount
+    create_transfer!(account: k401, amount: -500)
+    create_transfer!(account: @account, amount: 800) # funding side, unassigned
 
     plan = CspPlan.new(@budget.reload)
 
@@ -150,9 +150,9 @@ class CspPlanTest < ActiveSupport::TestCase
   test "transfer rows exclude zero-net accounts, other kinds, and other months" do
     hsa = @family.accounts.create!(name: "HSA", balance: 0, currency: "USD", accountable: Depository.new)
 
-    # In and back out: nets to zero
-    create_transfer!(account: hsa, amount: 300)
+    # In and back out: nets to zero (inbound negative, outbound positive)
     create_transfer!(account: hsa, amount: -300)
+    create_transfer!(account: hsa, amount: 300)
     # Standard transactions are budget analytics, never transfers
     Entry.create!(
       account: hsa,
@@ -177,12 +177,83 @@ class CspPlanTest < ActiveSupport::TestCase
     @budget.sync_budget_categories
     create_entry!(category: paycheck, amount: -4000)
 
-    create_transfer!(account: hsa, amount: 500)
-    create_transfer!(account: hsa, amount: -200) # pulled back to checking
+    create_transfer!(account: hsa, amount: -500)
+    create_transfer!(account: hsa, amount: 200) # pulled back to checking
 
     plan = CspPlan.new(@budget.reload)
 
     assert_equal 300, plan.buckets.find { |b| b.key == "savings" }.actual
+  end
+
+  test "includes unmatched direct contributions to assigned accounts" do
+    # Payroll 401k contribution: never touches another account, so it has no
+    # transfer pair — kind stays standard with a Contribution activity label.
+    k401 = @family.accounts.create!(name: "401k", balance: 0, currency: "USD", accountable: Depository.new, csp_bucket: "investments")
+    paycheck = create_category!("Paycheck")
+
+    @budget.sync_budget_categories
+    create_entry!(category: paycheck, amount: -4000)
+
+    Entry.create!(
+      account: k401,
+      entryable: Transaction.create!(kind: "standard", investment_activity_label: "Contribution"),
+      date: Date.current,
+      name: "Contribution - contribution",
+      amount: -1002.11, # inbound: negative entry amount
+      currency: "USD"
+    )
+
+    plan = CspPlan.new(@budget.reload)
+
+    assert_equal({ "401k" => 1002.11 },
+      plan.transfer_rows.to_h { |row| [ row.account.name, row.net ] })
+
+    investments = plan.buckets.find { |b| b.key == "investments" }
+    assert_equal 1002.11, investments.actual
+    assert_equal 1, investments.transfer_count
+  end
+
+  test "excludes transfer-matched contributions from transfer rows" do
+    # Bank -> brokerage contribution matched as a transfer pair: the bank-side
+    # outflow is the budgeted side, so the account side must not double count.
+    k401 = @family.accounts.create!(name: "401k", balance: 0, currency: "USD", accountable: Depository.new, csp_bucket: "investments")
+
+    outflow_tx = Transaction.create!(kind: "funds_movement")
+    Entry.create!(account: @account, entryable: outflow_tx, date: Date.current,
+      name: "Brokerage contribution", amount: 500, currency: "USD")
+
+    inflow_tx = Transaction.create!(kind: "standard", investment_activity_label: "Contribution")
+    Entry.create!(account: k401, entryable: inflow_tx, date: Date.current,
+      name: "Contribution - contribution", amount: -500, currency: "USD")
+
+    Transfer.create!(inflow_transaction: inflow_tx, outflow_transaction: outflow_tx, status: "confirmed")
+
+    plan = CspPlan.new(@budget.reload)
+
+    # The checking outflow is funds_movement (unassigned account: shown but
+    # bucketless); the matched 401k inflow is excluded entirely.
+    assert_equal({ "Checking" => -500 },
+      plan.transfer_rows.to_h { |row| [ row.account.name, row.net ] })
+    assert_equal 0, plan.buckets.find { |b| b.key == "investments" }.actual
+  end
+
+  test "excludes budgeted investment_contribution transactions from transfer rows" do
+    # Properly classified contributions are already budget spending via their
+    # category; counting them in the account net too would double count.
+    k401 = @family.accounts.create!(name: "401k", balance: 0, currency: "USD", accountable: Depository.new, csp_bucket: "investments")
+
+    Entry.create!(
+      account: k401,
+      entryable: Transaction.create!(kind: "investment_contribution", investment_activity_label: "Contribution"),
+      date: Date.current,
+      name: "Contribution - contribution",
+      amount: -500,
+      currency: "USD"
+    )
+
+    plan = CspPlan.new(@budget.reload)
+
+    assert_empty plan.transfer_rows
   end
 
   private
