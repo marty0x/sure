@@ -41,6 +41,11 @@ class Account < ApplicationRecord
 
   enum :classification, { asset: "asset", liability: "liability" }, validate: { allow_nil: true }
 
+  # Conscious Spending Plan bucket, mirroring Category#csp_bucket. Assigned
+  # once per account; the CSP tab adds the month's net funds_movement for the
+  # account into the chosen bucket (e.g. HSA -> savings, 401k -> investments).
+  enum :csp_bucket, Category::CSP_BUCKET_KEYS.index_with { |k| k }, validate: { allow_nil: true }
+
   VISIBLE_STATUSES = %w[draft active].freeze
   HISTORICAL_STATUSES = (VISIBLE_STATUSES + %w[disabled]).freeze
 

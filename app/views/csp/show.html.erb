@@ -55,7 +55,7 @@
           <div class="absolute inset-y-0 bg-success/20" style="left: <%= band_min %>%; width: <%= band_max - band_min %>%;"></div>
           <div class="absolute inset-y-0 left-0 <%= bar_tone %> rounded-full" style="width: <%= [ bucket.percent, 100 ].min %>%;"></div>
         </div>
-        <p class="text-xs text-secondary"><%= t("csp.bands.#{key}") %> · <%= t(".categories_count", count: bucket.category_count) %></p>
+        <p class="text-xs text-secondary"><%= t("csp.bands.#{key}") %> · <%= t(".categories_count", count: bucket.category_count) %><% if bucket.transfer_count.positive? %> · <%= t(".transfers_count", count: bucket.transfer_count) %><% end %></p>
       </div>
     <% end %>
   </section>
@@ -106,6 +106,44 @@
       <div class="pt-4 flex justify-end">
         <%= render DS::Button.new(text: t(".setup.save"), type: :submit) %>
       </div>
+    <% end %>
+  </section>
+
+  <%# Account transfer bucket assignments — funds_movement nets to zero in the
+      budget, so assign each account's net transfer to a bucket here %>
+  <section class="bg-container rounded-xl shadow-border-xs p-5 space-y-4">
+    <div>
+      <h3 class="text-base font-medium text-primary"><%= t(".transfers.title") %></h3>
+      <p class="text-sm text-secondary mt-1"><%= t(".transfers.subtitle") %></p>
+    </div>
+
+    <% if @plan.transfer_rows.any? %>
+      <%= form_with url: csp_buckets_path(month_year: @budget.to_param, **budget_owner_query), method: :patch do %>
+        <div class="divide-y divide-secondary">
+          <div class="grid grid-cols-12 gap-3 pb-2 text-[11px] font-medium uppercase tracking-wide text-secondary">
+            <p class="col-span-6"><%= t(".transfers.account") %></p>
+            <p class="col-span-3 text-right"><%= t(".transfers.net_this_month") %></p>
+            <p class="col-span-3"><%= t(".setup.bucket") %></p>
+          </div>
+          <% @plan.transfer_rows.each do |row| %>
+            <div class="grid grid-cols-12 gap-3 items-center py-2.5">
+              <p class="col-span-6 text-sm text-primary truncate"><%= row.account.name %></p>
+              <p class="col-span-3 text-sm text-secondary tabular-nums text-right privacy-sensitive"><%= format_money(Money.new(row.net, @budget.family.currency)) %></p>
+              <div class="col-span-3">
+                <%= select_tag "account_buckets[#{row.account.id}]",
+                    options_for_select([ [ t(".setup.unassigned_option"), "" ] ] + @bucket_options, row.account.csp_bucket),
+                    class: "form-field__input w-full text-sm" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="pt-4 flex justify-end">
+          <%= render DS::Button.new(text: t(".transfers.save"), type: :submit) %>
+        </div>
+      <% end %>
+    <% else %>
+      <p class="text-sm text-secondary"><%= t(".transfers.empty") %></p>
     <% end %>
   </section>
 </div>

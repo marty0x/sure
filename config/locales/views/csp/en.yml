@@ -19,6 +19,16 @@ en:
       categories_count:
         one: "%{count} category"
         other: "%{count} categories"
+      transfers_count:
+        one: "%{count} account transfer"
+        other: "%{count} account transfers"
+      transfers:
+        title: Account transfers
+        subtitle: Money moved between accounts (e.g. paycheck deposits to an HSA or 401k) nets to zero in your budget, so it never appears above. Assign each account's net transfer to a bucket once — the assignment sticks for every month.
+        account: Account
+        net_this_month: Net this month
+        empty: No account-to-account transfers this month.
+        save: Save transfer buckets
       status:
         on_track: On track
         below: Below target

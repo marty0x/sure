@@ -14,20 +14,22 @@ class CspController < ApplicationController
     @breadcrumbs = [ [ t("breadcrumbs.home"), root_path ], [ t("csp.show.title"), nil ] ]
   end
 
-  # Bulk-assigns budget categories to Conscious Spending Plan buckets. The
-  # assignment lives on Category (not the monthly row) so one save covers
-  # every month, past and future.
+  # Bulk-assigns budget categories and accounts to Conscious Spending Plan
+  # buckets. The assignment lives on Category/Account (not the monthly row)
+  # so one save covers every month, past and future.
   def update_buckets
-    assignments = params[:category_buckets]&.to_unsafe_h || {}
+    category_assignments = params[:category_buckets]&.to_unsafe_h || {}
+    account_assignments = params[:account_buckets]&.to_unsafe_h || {}
 
-    Category.transaction do
-      assignments.each do |category_id, bucket|
+    ApplicationRecord.transaction do
+      category_assignments.each do |category_id, bucket|
         category = Current.family.categories.find(category_id)
-        bucket = bucket.presence
-        if bucket && !Category::CSP_BUCKET_KEYS.include?(bucket)
-          raise ActionController::BadRequest, "Unknown CSP bucket: #{bucket}"
-        end
-        category.update!(csp_bucket: bucket)
+        category.update!(csp_bucket: validated_bucket(bucket))
+      end
+
+      account_assignments.each do |account_id, bucket|
+        account = Current.family.accounts.find(account_id)
+        account.update!(csp_bucket: validated_bucket(bucket))
       end
     end
 
@@ -35,6 +37,14 @@ class CspController < ApplicationController
   end
 
   private
+    def validated_bucket(bucket)
+      bucket = bucket.presence
+      if bucket && !Category::CSP_BUCKET_KEYS.include?(bucket)
+        raise ActionController::BadRequest, "Unknown CSP bucket: #{bucket}"
+      end
+      bucket
+    end
+
     def set_budget
       month_param = params[:month_year].presence || Budget.date_to_param(Date.current)
       start_date = Budget.param_to_date(month_param, family: Current.family)

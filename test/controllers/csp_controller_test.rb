@@ -43,4 +43,22 @@ class CspControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to csp_path(month_year: Budget.date_to_param(Date.current))
     assert_equal "guilt_free", category.reload.csp_bucket
   end
+
+  test "saves account transfer bucket assignments via patch" do
+    account = @family.accounts.create!(name: "Csp Test HSA #{SecureRandom.hex(3)}", balance: 0, currency: "USD", accountable: Depository.new)
+
+    patch csp_buckets_path, params: { account_buckets: { account.id => "savings" } }
+
+    assert_redirected_to csp_path(month_year: Budget.date_to_param(Date.current))
+    assert_equal "savings", account.reload.csp_bucket
+  end
+
+  test "rejects unknown account buckets" do
+    account = @family.accounts.create!(name: "Csp Test HSA #{SecureRandom.hex(3)}", balance: 0, currency: "USD", accountable: Depository.new)
+
+    assert_raises(ActionController::BadRequest) do
+      patch csp_buckets_path, params: { account_buckets: { account.id => "nope" } }
+    end
+    assert_nil account.reload.csp_bucket
+  end
 end

@@ -121,6 +121,70 @@ class CspPlanTest < ActiveSupport::TestCase
     assert_equal 0, plan.buckets.find { |b| b.key == "fixed_costs" }.percent
   end
 
+  test "nets funds_movement transfers by account and rolls assigned nets into buckets" do
+    hsa = @family.accounts.create!(name: "HSA", balance: 0, currency: "USD", accountable: Depository.new, csp_bucket: "savings")
+    k401 = @family.accounts.create!(name: "401k", balance: 0, currency: "USD", accountable: Depository.new, csp_bucket: "investments")
+    paycheck = create_category!("Paycheck")
+
+    @budget.sync_budget_categories
+    create_entry!(category: paycheck, amount: -4000)
+
+    create_transfer!(account: hsa, amount: 300)
+    create_transfer!(account: k401, amount: 500)
+    create_transfer!(account: @account, amount: -800) # funding side, unassigned
+
+    plan = CspPlan.new(@budget.reload)
+
+    assert_equal({ "HSA" => 300, "401k" => 500, "Checking" => -800 },
+      plan.transfer_rows.to_h { |row| [ row.account.name, row.net ] })
+
+    savings = plan.buckets.find { |b| b.key == "savings" }
+    assert_equal 300, savings.actual
+    assert_equal 1, savings.transfer_count
+
+    investments = plan.buckets.find { |b| b.key == "investments" }
+    assert_equal 500, investments.actual
+    assert_equal :on_track, investments.status
+  end
+
+  test "transfer rows exclude zero-net accounts, other kinds, and other months" do
+    hsa = @family.accounts.create!(name: "HSA", balance: 0, currency: "USD", accountable: Depository.new)
+
+    # In and back out: nets to zero
+    create_transfer!(account: hsa, amount: 300)
+    create_transfer!(account: hsa, amount: -300)
+    # Standard transactions are budget analytics, never transfers
+    Entry.create!(
+      account: hsa,
+      entryable: Transaction.create!(kind: "standard"),
+      date: Date.current,
+      name: "CSP test entry",
+      amount: 999,
+      currency: "USD"
+    )
+    # Last month's transfer belongs to last month's plan
+    create_transfer!(account: hsa, amount: 111, date: Date.current.prev_month)
+
+    plan = CspPlan.new(@budget.reload)
+
+    assert_empty plan.transfer_rows
+  end
+
+  test "outflows from an assigned account reduce its bucket" do
+    hsa = @family.accounts.create!(name: "HSA", balance: 0, currency: "USD", accountable: Depository.new, csp_bucket: "savings")
+    paycheck = create_category!("Paycheck")
+
+    @budget.sync_budget_categories
+    create_entry!(category: paycheck, amount: -4000)
+
+    create_transfer!(account: hsa, amount: 500)
+    create_transfer!(account: hsa, amount: -200) # pulled back to checking
+
+    plan = CspPlan.new(@budget.reload)
+
+    assert_equal 300, plan.buckets.find { |b| b.key == "savings" }.actual
+  end
+
   private
     def create_category!(name, parent: nil, csp_bucket: nil)
       Category.create!(
@@ -139,6 +203,17 @@ class CspPlanTest < ActiveSupport::TestCase
         entryable: Transaction.create!(category: category),
         date: Date.current,
         name: "CSP test entry",
+        amount: amount,
+        currency: "USD"
+      )
+    end
+
+    def create_transfer!(account:, amount:, date: Date.current)
+      Entry.create!(
+        account: account,
+        entryable: Transaction.create!(kind: "funds_movement"),
+        date: date,
+        name: "CSP test transfer",
         amount: amount,
         currency: "USD"
       )
