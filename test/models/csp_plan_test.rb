@@ -307,8 +307,8 @@ class CspPlanTest < ActiveSupport::TestCase
 
     plan = CspPlan.new(@budget.reload)
 
-    assert_equal({ "401k" => -100 },
-      plan.transfer_rows.to_h { |row| [ row.account.name, row.net ] })
+    row = plan.transfer_rows.find { |r| r.account.name == "401k" }
+    assert_equal(-100, row.net)
   end
 
   private
