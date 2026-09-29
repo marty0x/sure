@@ -26,6 +26,28 @@ involved: [Discord](https://discord.gg/36ZGBsxYEK) • [Website](https://sure.am
 > This repository is a community fork of the now-abandoned Maybe Finance project. <br />
 > Learn more in their [final release](https://github.com/maybe-finance/maybe/releases/tag/v0.6.0) doc.
 
+## This fork's additions
+
+Personal customizations maintained on top of upstream `we-promise/sure`:
+
+### Basis trade monitoring
+
+A preview-gated **Basis** tab that tracks a delta-neutral ETH carry trade over time:
+
+- **Spot leg** — weETH/WETH/ETH held in a configured Optimism wallet (Cash Safe), including assets supplied to ether.fi's Optimism Aave v4 deployment, valued on-chain via public RPC.
+- **Short leg** — perp positions on Lighter, resolved from a configured L1 address, with funding accrued.
+- **Borrow tracking** — direct Basis borrow events from an on-chain ledger, plus ether.fi Credit debt read from the LendGateway; borrow cost is subtracted from the reported APY.
+- **Snapshots & charts** — `RecordBasisSnapshotsJob` records periodic snapshots; the tab charts the combined-leg equity curve (30D / 90D / 1Y / All) with an APY summary and an ETH SMA indicator.
+- Configure the wallet and perps addresses under Settings → Preferences.
+
+### Conscious Spending Plan (CSP)
+
+A preview-gated **CSP** tab implementing Ramit Sethi's Conscious Spending Plan:
+
+- Assign budget categories to four buckets — Fixed costs, Investments, Savings, Guilt-free spending — with subcategories inheriting the parent; month actuals are shown as a share of take-home pay against Ramit's target bands, plus an unassigned-dollars callout and a month navigator.
+- Per-account transfer buckets — transfers into accounts tagged as savings (e.g. 401(k), HSA) count toward that bucket, so paycheck auto-deposits that net to zero as account-to-account transfers still show up as savings.
+- Manual take-home pay override — set the denominator to gross pay minus taxes (including compensation routed to 401(k)/HSA and employer match), instead of the budget's income total.
+
 ## Backstory
 
 The [Maybe Finance](https://github.com/maybe-finance/maybe) (archived/abandoned repo) team spent most of 2021–2022 building a full-featured personal finance and wealth management app. It even included an “Ask an Advisor” feature that connected users with a real CFP/CFA — all included with your subscription.
