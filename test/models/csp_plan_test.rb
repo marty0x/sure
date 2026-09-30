@@ -327,6 +327,45 @@ class CspPlanTest < ActiveSupport::TestCase
     assert_not plan.manual_income?
   end
 
+  test "adds imputed basis yield to the savings bucket" do
+    # $10,000 -> $10,650 over 91 days: ~26.1% gross APY, ~25.4% net of borrow cost
+    @family.basis_trade_snapshots.create!(
+      recorded_at: 92.days.ago,
+      spot_leg_cents: 10_000_000, short_leg_cents: 0,
+      funding_accrued_cents: 0, rewards_accrued_cents: 0,
+      currency: "USD"
+    )
+    @family.basis_trade_snapshots.create!(
+      recorded_at: 1.day.ago,
+      spot_leg_cents: 10_650_000, short_leg_cents: 0,
+      funding_accrued_cents: 0, rewards_accrued_cents: 0,
+      currency: "USD"
+    )
+    paycheck = create_category!("Paycheck")
+    @budget.sync_budget_categories
+    create_entry!(category: paycheck, amount: -4000)
+
+    plan = CspPlan.new(@budget.reload)
+    savings = plan.buckets.find { |b| b.key == "savings" }
+
+    assert_not_nil plan.basis_yield
+    assert_in_delta 25.4, plan.basis_yield.apy, 0.5
+    assert_in_delta 22542, plan.basis_yield.amount, 500
+    assert_in_delta plan.basis_yield.amount, savings.actual, 1
+    assert_in_delta plan.basis_yield.amount, savings.basis_boost_amount, 1
+    assert savings.basis_boost_percent.positive?
+    assert_equal 0.to_d, plan.buckets.find { |b| b.key == "fixed_costs" }.basis_boost_amount
+    assert_equal 0.to_d, plan.buckets.find { |b| b.key == "fixed_costs" }.basis_boost_percent
+  end
+
+  test "no basis boost without snapshot history" do
+    plan = CspPlan.new(@budget.reload)
+
+    assert_nil plan.basis_yield
+    assert_equal 0.to_d, plan.buckets.find { |b| b.key == "savings" }.basis_boost_amount
+    assert_equal 0.to_d, plan.buckets.find { |b| b.key == "savings" }.basis_boost_percent
+  end
+
   private
     def create_category!(name, parent: nil, csp_bucket: nil)
       Category.create!(

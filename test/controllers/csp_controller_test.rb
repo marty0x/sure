@@ -35,6 +35,26 @@ class CspControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Spending Plan/i, response.body)
   end
 
+  test "renders basis yield boost on the savings card" do
+    @family.basis_trade_snapshots.create!(
+      recorded_at: 92.days.ago,
+      spot_leg_cents: 10_000_000, short_leg_cents: 0,
+      funding_accrued_cents: 0, rewards_accrued_cents: 0,
+      currency: "USD"
+    )
+    @family.basis_trade_snapshots.create!(
+      recorded_at: 1.day.ago,
+      spot_leg_cents: 10_650_000, short_leg_cents: 0,
+      funding_accrued_cents: 0, rewards_accrued_cents: 0,
+      currency: "USD"
+    )
+
+    get csp_path
+
+    assert_response :success
+    assert_match(/basis yield/i, response.body)
+  end
+
   test "saves bucket assignments via patch" do
     category = @family.categories.create!(name: "Csp Test Fun #{SecureRandom.hex(3)}", color: "#00ff00", lucide_icon: "shapes")
 

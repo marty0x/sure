@@ -14,8 +14,15 @@
 # (e.g. HSA -> savings, 401k -> investments) have their net added into
 # that bucket.
 class CspPlan
-  Bucket = Data.define(:key, :actual, :percent, :band_min, :band_max, :status, :category_count, :transfer_count)
+  Bucket = Data.define(:key, :actual, :percent, :band_min, :band_max, :status, :category_count, :transfer_count,
+                       :basis_boost_amount, :basis_boost_percent, :basis_apy)
   TransferRow = Data.define(:account, :net)
+  # Imputed monthly yield from the basis trade. Funding and rewards accrue
+  # inside the position and never appear as budget transactions, so without
+  # this the savings bucket understates true savings. Mirrors the Basis tab:
+  # start-anchored projected APY net of borrow cost, prorated to one month,
+  # applied to the latest account value on or before the viewed month's end.
+  BasisYield = Data.define(:amount, :apy, :account_value)
 
   def initialize(budget)
     @budget = budget
@@ -129,6 +136,14 @@ class CspPlan
     @transfer_counts.fetch(bucket_key, []).count
   end
 
+  # Imputed monthly yield from the basis trade, counted toward the savings
+  # bucket (see BasisYield above). Nil when there is no basis history to
+  # project from, the currencies don't match, or the projection isn't
+  # positive -- the feature is a boost, not a drag.
+  def basis_yield
+    @basis_yield ||= compute_basis_yield
+  end
+
   private
     def transfer_scope
       Transaction
@@ -142,6 +157,8 @@ class CspPlan
     def build_bucket(key)
       matches = top_level_budget_categories.select { |bc| bc.category.csp_bucket_effective == key }
       actual = matches.sum { |bc| bc.actual_spending.to_d } + transfer_actual_for(key)
+      boost = key == "savings" ? basis_yield : nil
+      actual += boost.amount if boost
       percent = percent_of_income(actual)
       band = Category::CSP_BUCKETS.fetch(key)
 
@@ -153,8 +170,43 @@ class CspPlan
         band_max: band[:max],
         status: bucket_status(percent, band, key),
         category_count: matches.count,
-        transfer_count: transfer_count_for(key)
+        transfer_count: transfer_count_for(key),
+        basis_boost_amount: boost&.amount || 0.to_d,
+        basis_boost_percent: boost ? percent_of_income(boost.amount) : 0.to_d,
+        basis_apy: boost&.apy
       )
+    end
+
+    def compute_basis_yield
+      family = @budget.family
+      payload = BasisTradeSeriesBuilder.new(family: family, end_date: @budget.end_date).payload
+      points = payload[:points]
+      return nil if points.size < 2
+      return nil unless payload[:currency].to_s.upcase == family.primary_currency_code.to_s.upcase
+
+      apy_summary = BasisTrade::ApyCalculator.new(points: points).summary
+      apy = apy_summary[:current]
+      return nil if apy.nil?
+
+      # Same net-of-borrow-cost adjustment as the Basis tab; the latest
+      # snapshot's own metadata stands in for the live borrow reading.
+      latest = BasisTradeSnapshot.for_family(family)
+        .where(recorded_at: ..@budget.end_date.end_of_day).chronological.last
+      direct_borrow_cents = latest&.metadata&.dig("direct_borrow_outstanding_cents") ||
+        latest&.metadata&.dig(:direct_borrow_outstanding_cents)
+      borrow = BasisTrade::BorrowCostCalculator.new(
+        initial_amount: apy_summary[:initial_amount],
+        direct_borrow_outstanding: direct_borrow_cents.to_i / 100.0
+      ).summary
+      apy = (apy - borrow[:percent]).round(2) if borrow
+
+      account_value = points.last[:combined].to_d
+      monthly_dollars = (account_value * apy / 100 / 12).round(2)
+      return nil unless monthly_dollars.positive?
+
+      # The plan works in integer cents like the rest of the budget actuals;
+      # the series builder reports combined account value in dollars.
+      BasisYield.new(amount: (monthly_dollars * 100).round, apy: apy, account_value: account_value)
     end
 
     def percent_of_income(amount)

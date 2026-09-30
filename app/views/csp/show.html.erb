@@ -1,5 +1,5 @@
 <%# Build marker: view-source and search "csp-build" to confirm which deploy is live. Bump on every deploy. %>
-<!-- csp-build: f53d3fd4 -->
+<!-- csp-build: 246d209c -->
 <div class="@container space-y-8 pb-6 lg:pb-12">
   <header>
     <div class="flex items-center gap-2">
@@ -67,10 +67,15 @@
         <div class="relative h-2 rounded-full bg-container-inset overflow-hidden" role="img" aria-label="<%= t("csp.buckets.#{key}") %>: <%= bucket.percent %>% — <%= t("csp.bands.#{key}") %>">
           <% band_min = bucket.band_min || 0 %>
           <% band_max = bucket.band_max || 100 %>
+          <% base_pct = [ bucket.percent - bucket.basis_boost_percent, 100 ].min %>
+          <% boost_pct = [ bucket.basis_boost_percent, 100 - base_pct ].min %>
           <div class="absolute inset-y-0 bg-success/20" style="left: <%= band_min %>%; width: <%= band_max - band_min %>%;"></div>
-          <div class="absolute inset-y-0 left-0 <%= bar_tone %> rounded-full" style="width: <%= [ bucket.percent, 100 ].min %>%;"></div>
+          <div class="absolute inset-y-0 left-0 <%= bar_tone %> rounded-full" style="width: <%= base_pct %>%;"></div>
+          <% if boost_pct.positive? %>
+            <div class="absolute inset-y-0 bg-green-300 rounded-full" style="left: <%= base_pct %>%; width: <%= boost_pct %>%;"></div>
+          <% end %>
         </div>
-        <p class="text-xs text-secondary"><%= t("csp.bands.#{key}") %> · <%= t(".categories_count", count: bucket.category_count) %><% if bucket.transfer_count.positive? %> · <%= t(".transfers_count", count: bucket.transfer_count) %><% end %></p>
+        <p class="text-xs text-secondary"><%= t("csp.bands.#{key}") %> · <%= t(".categories_count", count: bucket.category_count) %><% if bucket.transfer_count.positive? %> · <%= t(".transfers_count", count: bucket.transfer_count) %><% end %><% if bucket.basis_boost_amount.positive? %> · <%= t(".basis_yield_boost", amount: format_money(Money.new(bucket.basis_boost_amount, @budget.family.currency)), apy: bucket.basis_apy) %><% end %></p>
       </div>
     <% end %>
   </section>
