@@ -200,7 +200,13 @@ class CspPlan
       ).summary
       apy = (apy - borrow[:percent]).round(2) if borrow
 
-      account_value = points.last[:combined].to_d
+      # Production snapshots are persisted at 100x the documented
+      # CENTS_PER_UNIT scale (observed 2026-09-30: the series builder
+      # reports ~$1.06M combined for a ~$10.6K account, which inflated
+      # the imputed yield 100x to ~$22.5K). Scale back to true dollars
+      # here. Revisit if the stored snapshots are ever backfilled to
+      # the documented scale.
+      account_value = points.last[:combined].to_d / 100
       monthly_dollars = (account_value * apy / 100 / 12).round(2)
       return nil unless monthly_dollars.positive?
 

@@ -328,16 +328,20 @@ class CspPlanTest < ActiveSupport::TestCase
   end
 
   test "adds imputed basis yield to the savings bucket" do
-    # $10,000 -> $10,650 over 91 days: ~26.1% gross APY, ~25.4% net of borrow cost
+    # Production snapshots are persisted at 100x the documented
+    # CENTS_PER_UNIT scale, so the fixtures below mirror production:
+    # 1_000_000_000 units ~= $10,000, growing to ~= $10,650 over 91
+    # days (~26.1% gross APY, ~25.4% net of borrow cost). The plan
+    # scales the builder's combined value back 100x, yielding ~$225.
     @family.basis_trade_snapshots.create!(
       recorded_at: 92.days.ago,
-      spot_leg_cents: 10_000_000, short_leg_cents: 0,
+      spot_leg_cents: 1_000_000_000, short_leg_cents: 0,
       funding_accrued_cents: 0, rewards_accrued_cents: 0,
       currency: "USD"
     )
     @family.basis_trade_snapshots.create!(
       recorded_at: 1.day.ago,
-      spot_leg_cents: 10_650_000, short_leg_cents: 0,
+      spot_leg_cents: 1_065_000_000, short_leg_cents: 0,
       funding_accrued_cents: 0, rewards_accrued_cents: 0,
       currency: "USD"
     )

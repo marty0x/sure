@@ -38,13 +38,13 @@ class CspControllerTest < ActionDispatch::IntegrationTest
   test "renders basis yield boost on the savings card" do
     @family.basis_trade_snapshots.create!(
       recorded_at: 92.days.ago,
-      spot_leg_cents: 10_000_000, short_leg_cents: 0,
+      spot_leg_cents: 1_000_000_000, short_leg_cents: 0,
       funding_accrued_cents: 0, rewards_accrued_cents: 0,
       currency: "USD"
     )
     @family.basis_trade_snapshots.create!(
       recorded_at: 1.day.ago,
-      spot_leg_cents: 10_650_000, short_leg_cents: 0,
+      spot_leg_cents: 1_065_000_000, short_leg_cents: 0,
       funding_accrued_cents: 0, rewards_accrued_cents: 0,
       currency: "USD"
     )
