@@ -124,11 +124,26 @@ OPENAI_ACCESS_TOKEN=sk-proj-...
 ```
 
 **Recommended models:**
+- `gpt-6.1-sol` - Latest Sol model for complex financial analysis; assistant tools require the native Responses API
+- `gpt-6-sol` - Strong reasoning for multi-step financial analysis; use the native OpenAI provider and Responses API for reasoning with function tools
 - `gpt-4.1` - Default, best balance of speed and quality
-- `gpt-5` - Latest model, highest quality (more expensive)
+- `gpt-5` - Earlier-generation reasoning model
 - `gpt-4o-mini` - Cheaper, good quality
 
 **Pricing:** See [OpenAI Pricing](https://openai.com/api/pricing/)
+
+GPT-6.1 Sol and GPT-6 Sol use the native Responses API for assistant tools.
+Leave the custom Base URL setting empty when connecting directly to OpenAI.
+GPT-6.1 Sol does not support tool calling in Chat Completions, or the `none`
+and `minimal` reasoning efforts. See the [model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol).
+Native GPT-6.1 Sol, GPT-6 Sol,
+`o1`, and `o3` PDF vision requests use `max_completion_tokens`, which includes
+reasoning and visible output, when an output limit is explicitly configured.
+Set `LLM_MAX_RESPONSE_TOKENS` to a positive value to bound each such request;
+the default 512-token context reserve is not sent as a provider limit.
+Text extraction keeps its existing request behavior. Custom endpoints retain
+their existing token parameters. Increase the LLM context budget for cloud
+reasoning models; the default 2048-token context is intended for small local models.
 
 ### Google Gemini (via OpenRouter)
 
@@ -755,6 +770,9 @@ an account roster and category names. The roster collapses to counts beyond
 25 accounts, categories beyond 60 names, and both collapse whenever the
 configured context window is below 4096 tokens.
 
+A family admin can replace the static half from **Settings → AI Prompts**
+without a redeploy; see [Custom System Prompts](#custom-system-prompts).
+
 ### Adding a New Assistant Type
 
 To add a custom assistant implementation:
@@ -1031,16 +1049,66 @@ Good test queries that exercise different capabilities:
 
 ### Cloud Costs
 
-Typical costs for OpenAI (as of early 2025):
+**Pricing table last updated and verified: September 29, 2026.** Every model
+listed in [`LlmUsage::PRICING`](../../app/models/llm_usage.rb) was checked against
+official sources. `PRICING_VERIFIED_ON` supplies the verification date shown on
+the LLM usage screen. This is a manual review date, not a claim that providers
+changed every price that day.
 
-- **gpt-4.1:** ~$5-15 per 1M input tokens, ~$15-60 per 1M output tokens
-- **gpt-5:** ~2-3x more expensive than gpt-4.1
-- **gpt-4o-mini:** ~$0.15 per 1M input tokens (very cheap)
+Rates are USD per million tokens at the Standard tier. The source coverage is:
+
+| Models in the code | Official pricing source |
+| --- | --- |
+| GPT-6 Sol/6.1 Sol, GPT-5.6, GPT-5.5, GPT-5.4, GPT-5.2, GPT-5.1, GPT-5, GPT-4.1, GPT-4o, o1, o3, o4-mini (including listed variants) | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
+| GPT-5.2/5.1 Chat aliases | [GPT-5.2 Chat](https://developers.openai.com/api/docs/models/gpt-5.2-chat-latest), [GPT-5.1 Chat](https://developers.openai.com/api/docs/models/gpt-5.1-chat-latest) |
+| o1-mini | [o1-mini](https://developers.openai.com/api/docs/models/o1-mini) |
+| Gemini 2.5 Pro/Flash | [Google pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| Claude Opus 4.6/4.7, Sonnet 4.5/4.6, Haiku 4.5 | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+
+#### Dated pricing changes
+
+| Model | Input / output | Latest relevant published date found |
+| --- | --- | --- |
+| GPT-6.1 Sol | $2 / $10 | September 29, 2026: launch pricing |
+| GPT-6 Sol | $2 / $10 | September 22, 2026: launch pricing |
+| GPT-5.6 Sol | $4 / $20 | August 21, 2026: price reduction; promotion available at least through November 21, 2026 |
+| GPT-5.6 Terra | $2 / $12 | July 30, 2026: price reduction |
+| GPT-5.6 Luna | $0.20 / $1.20 | July 30, 2026: price reduction |
+| Claude Opus 4.7 | $5 / $25 | April 16, 2026: published launch rate; corrects Sure's erroneous $15 / $75 |
+| Claude Opus 4.6 | $5 / $25 | February 5, 2026: published base launch rate; corrects Sure's erroneous $15 / $75 |
+
+Dates above come from the [OpenAI changelog](https://developers.openai.com/api/docs/changelog)
+and the [Opus 4.7](https://www.anthropic.com/news/claude-opus-4-7) and
+[Opus 4.6](https://www.anthropic.com/news/claude-opus-4-6) announcements.
+For other listed rates, the latest price-change date was **not established**;
+their current prices were verified on September 29. Google's pricing page says
+it was last updated September 24, 2026; that is a page update, not evidence of a
+Gemini 2.5 price change.
+
+#### Context tiers and estimate limits
+
+OpenAI's listed GPT-6 Sol, GPT-6.1 Sol, GPT-5.6, GPT-5.5/Pro and GPT-5.4/Pro
+rates increase above 272,000 input tokens: input doubles and output increases
+by 50% for the entire request. GPT-5.4 mini/nano retain their flat rates.
+Gemini 2.5 Pro changes from $1.25 / $10 to $2.50 / $15 above 200,000 input
+tokens. Gemini 2.5 Flash remains $0.30 / $2.50 for text/image/video input.
+Claude 4.6/4.7 use standard rates throughout their context window.
+
+Sure estimates individual requests using these tiers. Aggregate categorization
+previews assume short requests. Saved usage costs are historical estimates and
+are not recalculated by this update. Estimates exclude regional premiums,
+alternative service tiers, tool charges and audio-specific rates. Anthropic
+five-minute cache writes and reads are included when reported; OpenAI and Gemini
+cache discounts and cache-write/storage charges are not currently modeled.
+Custom endpoints may charge different rates.
+
+For comparison, GPT-4.1 is $2 input / $8 output, GPT-5 is $1.25 / $10,
+and GPT-4o mini is $0.15 / $0.60.
 
 **Typical usage:**
 - Chat message: 500-2000 tokens (input) + 100-500 tokens (output)
 - Auto-categorization: 1000-3000 tokens per 25 transactions
-- Cost per chat message: $0.01-0.05 for gpt-4.1
+- Cost per chat message: about $0.0018-0.008 for GPT-4.1 at the token counts above
 
 **Optimization tips:**
 1. Use `gpt-4o-mini` for categorization
@@ -1287,18 +1355,68 @@ byte-identical on every request (providers cache and discount an
 exactly-repeated prefix), and a trailing `## Session context` block holding
 everything volatile (date, currency, account roster, categories).
 
-To customize:
-1. Fork the repository
-2. Edit the `STATIC_INSTRUCTIONS` constant (keep customizations there so the
-   prompt stays cacheable; only put genuinely per-request data in the session
-   context builders)
-3. Rebuild and deploy
-
 **What you can customize:**
 - Tone and personality
 - Response format
 - Rules and constraints
 - Domain expertise
+
+#### In the browser (per family, no redeploy)
+
+A family admin can edit the prompts at **Settings → AI Prompts**. Overrides are
+stored per family, so one family's edits never affect another on the same
+deployment. Five prompts are editable: the chat system prompt, plus the
+transaction categorizer and merchant detector for each of OpenAI and Anthropic.
+Those last two are worded independently per provider, which is why each gets its
+own field.
+
+Each field opens with its built-in default instructions, or the family override
+if one was saved. Leaving a field blank falls back to the default, and clicking
+**Reset to default** asks for confirmation before restoring the original text.
+A status label and live character counter sit below each field, with an override
+cap of 20,000 characters per prompt.
+
+The categorizer and merchant detector ship two OpenAI variants: a terse one for
+smaller local models and a detailed one written for larger models. A single
+override replaces both, so on a deployment pointed at a custom endpoint
+(`OPENAI_URI_BASE` set) those fields open with the terse variant your models
+receive.
+
+Overriding the chat prompt gives up some prompt caching. The static half is
+byte-stable so providers discount the repeated prefix; a family that overrides it
+gets its own prefix, which no longer shares a cache entry with other families on
+the same API key. The first request after each edit also pays full price. The
+result is a small, temporary increase in cost.
+
+Evals always score the default. `Eval::Runners::ChatRunner` reads
+`STATIC_INSTRUCTIONS` directly, which keeps eval scores reproducible. Editing a
+family's prompt does not change them.
+
+Custom OpenAI-compatible endpoints need a little more care. The categorizer and
+merchant parsers look for a `{"categorizations": [...]}` or `{"merchants": [...]}`
+wrapper key, but Sure also asks for that key in a per-request message your
+override does not replace, so rewording or dropping the example JSON is safe on
+its own. Parsing breaks when an override *contradicts* the output format:
+asking for reasoning before the answer, a different wrapper key, YAML, or tags
+around the result. Smaller local models tend to follow the system prompt over
+the per-request one. Because of that, the editor still warns when a custom
+OpenAI override drops the example JSON: the request-level fallback usually
+covers it, but the warning is a precaution for models that don't fall back
+that way.
+
+That risk applies to every mode except a strict schema the endpoint honors:
+`none` applies no constraint, `json_object` guarantees JSON but not the shape,
+and `auto` (the default) retries in `none` mode once more than half the results
+come back empty. Native OpenAI (strict schema) and Anthropic (forced tool use)
+enforce the shape server-side.
+
+#### In code (the default every family starts from)
+
+1. Fork the repository
+2. Edit the `STATIC_INSTRUCTIONS` constant (keep customizations there so the
+   prompt stays cacheable; only put genuinely per-request data in the session
+   context builders)
+3. Rebuild and deploy
 
 ### Function Calling
 
@@ -1631,6 +1749,29 @@ throttle('chats/create', limit: 10, period: 1.minute) do |req|
 end
 ```
 
+## External chat assistant
+
+The External assistant delegates chat to a remote OpenAI-compatible agent gateway. It is separate from the Builtin LLM provider described above.
+
+Configure it in **Settings → Self-Hosting → AI Assistant**, or with:
+
+```bash
+ASSISTANT_TYPE=external
+EXTERNAL_ASSISTANT_URL=https://your-agent-host/v1/chat/completions
+EXTERNAL_ASSISTANT_TOKEN=your-gateway-token # pipelock:ignore
+EXTERNAL_ASSISTANT_MODEL=openclaw/main
+```
+
+Configuration behavior:
+
+- `EXTERNAL_ASSISTANT_URL` is the full chat-completions endpoint. Sure sends requests to this URL verbatim; it does not append `/v1/chat/completions`.
+- The Settings form requires an agent selection. After the URL and token are saved, Sure requests the sibling `/v1/models` endpoint and shows the returned entries as agent choices. If you change the endpoint or token and the previously selected agent is not offered there, Sure saves the new connection and asks you to pick an agent again.
+- The selected value is sent as the OpenAI-compatible `model` routing value, such as `openclaw/main`. This selects an external agent. It does not select or change the LLM configured behind that agent.
+- The gateway must return standard streaming chat-completion events (`choices[0].delta.content`) followed by `data: [DONE]`.
+- An authentication, endpoint, or agent-selection failure comes from the external gateway. Check the gateway's response and logs when Sure reports an HTTP error.
+
+Upgrading: deployments that set only the URL and token keep working. When no agent is selected, Sure uses `openclaw/main`, which matches the previous implicit `main` agent. `EXTERNAL_ASSISTANT_AGENT_ID` is still read for existing deployments and maps to `openclaw/<id>` until an agent is selected. Once a model is selected in Settings or with `EXTERNAL_ASSISTANT_MODEL`, the agent routing header always follows that model. New configurations should use `EXTERNAL_ASSISTANT_MODEL`.
+
 ## Resources
 
 - [OpenAI Documentation](https://platform.openai.com/docs)
@@ -1652,4 +1793,4 @@ For issues with AI features:
 
 ---
 
-**Last Updated:** August 2026
+**Last Updated:** September 2026

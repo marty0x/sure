@@ -89,6 +89,15 @@ class Account < ApplicationRecord
       .distinct
   }
 
+  # Accounts a user can annotate (category, tags, notes, merchant): owned,
+  # or shared with full_control or read_write
+  scope :annotatable_by, ->(user) {
+    left_joins(:account_shares)
+      .where("accounts.owner_id = :uid OR (account_shares.user_id = :uid AND account_shares.permission IN (:permissions))",
+             uid: user.id, permissions: AccountShare::ANNOTATE_PERMISSIONS)
+      .distinct
+  }
+
   # Accounts that count in a user's financial calculations
   scope :included_in_finances_for, ->(user) {
     left_joins(:account_shares)
@@ -405,19 +414,26 @@ class Account < ApplicationRecord
       create_and_sync(attributes, skip_initial_sync: true)
     end
 
+    TRADE_REPUBLIC_ACCOUNT_TYPES = {
+      "portfolio" => [ "Investment", "brokerage", "Trade Republic Portfolio" ],
+      "cash" => [ "Depository", "checking", "Trade Republic Cash" ],
+      # The exchange subtype is the Crypto subtype that supports trades.
+      "crypto" => [ "Crypto", "exchange", "Trade Republic Crypto" ]
+    }.freeze
+
     def create_from_trade_republic_account(trade_republic_account)
       family = trade_republic_account.trade_republic_item.family
-      is_cash = trade_republic_account.cash?
+      accountable_type, subtype, default_name = TRADE_REPUBLIC_ACCOUNT_TYPES.fetch(trade_republic_account.kind)
 
       attributes = {
         family: family,
-        name: trade_republic_account.name.presence || (is_cash ? "Trade Republic Cash" : "Trade Republic Portfolio"),
+        name: trade_republic_account.name.presence || default_name,
         balance: 0,
         cash_balance: 0,
         currency: trade_republic_account.currency.presence || family.currency,
-        accountable_type: is_cash ? "Depository" : "Investment",
+        accountable_type: accountable_type,
         accountable_attributes: {
-          subtype: is_cash ? "checking" : "brokerage"
+          subtype: subtype
         }
       }
 
@@ -426,6 +442,12 @@ class Account < ApplicationRecord
 
     def create_from_kraken_account(kraken_account)
       create_from_crypto_exchange_account(kraken_account, family: kraken_account.kraken_item.family)
+    end
+
+    # Creates a manual Crypto account for a newly-selected CoinSpot account,
+    # owned by the connection's family.
+    def create_from_coinspot_account(coinspot_account)
+      create_from_crypto_exchange_account(coinspot_account, family: coinspot_account.coinspot_item.family)
     end
 
     # Self-custody assets are wallets, not exchanges: no trade entry by hand,
@@ -723,10 +745,15 @@ class Account < ApplicationRecord
       if Current.user.present? && Current.user.family_id == family_id
         self.owner = Current.user
       else
+        # `id` breaks ties on `created_at`. Two users of the same role can share
+        # a timestamp (they are created in one transaction, or the column is
+        # backfilled), and ordering on `created_at` alone leaves the winner to
+        # the query plan — so the same family can get a different default owner
+        # from one call to the next.
         self.owner =
-          family&.users&.where(role: "admin")&.order(:created_at)&.first ||
-          family&.users&.where(role: "super_admin")&.order(:created_at)&.first ||
-          family&.users&.order(:created_at)&.first
+          family&.users&.where(role: "admin")&.order(:created_at, :id)&.first ||
+          family&.users&.where(role: "super_admin")&.order(:created_at, :id)&.first ||
+          family&.users&.order(:created_at, :id)&.first
       end
     end
 
