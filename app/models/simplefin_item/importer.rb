@@ -768,23 +768,6 @@ class SimplefinItem::Importer
         end
       end
 
-      # Protocol v2 reports structured per-connection errors in `errlist`
-      # (the v1 `errors` array is deprecated as of protocol v2.0.0). This must
-      # be inspected on every sync: when a bank session behind the bridge
-      # expires, the bridge keeps returning HTTP 200 with its last cached
-      # snapshot and surfaces the auth failure ONLY here. Ignoring it makes
-      # days-stale data look like a healthy sync.
-      if accounts_data[:errlist].is_a?(Array) && accounts_data[:errlist].any?
-        if accounts_data[:accounts].to_a.any?
-          # Partial failure: record errors for visibility but continue processing accounts
-          record_errors(accounts_data[:errlist])
-        else
-          # Global failure: no accounts were returned; treat as fatal
-          handle_errors(accounts_data[:errlist])
-          return nil
-        end
-      end
-
       accounts_data
     end
 

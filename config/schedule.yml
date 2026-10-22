@@ -108,4 +108,5 @@ record_basis_snapshots:
   cron: "0 */12 * * *" # twice daily at 00:00 and 12:00 UTC (8 PM and 8 AM EDT)
   class: "RecordBasisSnapshotsJob"
   queue: "scheduled"
+  active_job: true
   description: "Records basis trade snapshots for configured families twice per day"
