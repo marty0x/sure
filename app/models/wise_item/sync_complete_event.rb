@@ -8,7 +8,6 @@ class WiseItem::SyncCompleteEvent
   end
 
   def broadcast
-
     wise_item.family.broadcast_sync_complete unless wise_item.part_of_larger_sync?
   end
 

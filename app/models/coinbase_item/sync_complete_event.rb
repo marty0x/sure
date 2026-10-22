@@ -10,7 +10,6 @@ class CoinbaseItem::SyncCompleteEvent
 
   # Broadcasts sync completion to update UI components.
   def broadcast
-
     # Let family handle sync notifications (unless this is nested under a larger
     # family sync, whose own finalization will already broadcast once)
     coinbase_item.family.broadcast_sync_complete unless coinbase_item.part_of_larger_sync?

@@ -6,7 +6,6 @@ class IbkrItem::SyncCompleteEvent
   end
 
   def broadcast
-
     ibkr_item.family.broadcast_sync_complete unless ibkr_item.part_of_larger_sync?
   end
 end
