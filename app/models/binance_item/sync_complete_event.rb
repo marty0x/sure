@@ -12,13 +12,6 @@ class BinanceItem::SyncCompleteEvent
 
   # Broadcasts sync completion to update UI components.
   def broadcast
-    # Update the Binance item view
-    binance_item.broadcast_replace_to(
-      binance_item.family,
-      target: "binance_item_#{binance_item.id}",
-      partial: "binance_items/binance_item",
-      locals: { binance_item: binance_item }
-    )
 
     # Let family handle sync notifications (unless this is nested under a larger
     # family sync, whose own finalization will already broadcast once)

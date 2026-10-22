@@ -20,11 +20,17 @@ class BalanceSheet::ClassificationGroup
     classification == "asset" ? "plus" : "minus"
   end
 
-  def total
+  # Accounts that count towards totals: included in the viewer's finances,
+  # not excluded from reports, and not excluded from net worth (fork addition
+  # for basis/levered accounts). Account groups use the same rule.
+  def self.counted_accounts(accounts)
     accounts.select { |a| a.respond_to?(:included_in_finances?) ? a.included_in_finances? : true }
             .reject { |a| a.respond_to?(:exclude_from_reports?) && a.exclude_from_reports? }
             .reject { |a| a.respond_to?(:exclude_from_net_worth?) && a.exclude_from_net_worth? }
-            .sum(&:converted_balance)
+  end
+
+  def total
+    self.class.counted_accounts(accounts).sum(&:converted_balance)
   end
 
   def syncing?

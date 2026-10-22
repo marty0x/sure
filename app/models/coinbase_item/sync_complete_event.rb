@@ -10,13 +10,6 @@ class CoinbaseItem::SyncCompleteEvent
 
   # Broadcasts sync completion to update UI components.
   def broadcast
-    # Update the Coinbase item view
-    coinbase_item.broadcast_replace_to(
-      coinbase_item.family,
-      target: "coinbase_item_#{coinbase_item.id}",
-      partial: "coinbase_items/coinbase_item",
-      locals: { coinbase_item: coinbase_item }
-    )
 
     # Let family handle sync notifications (unless this is nested under a larger
     # family sync, whose own finalization will already broadcast once)

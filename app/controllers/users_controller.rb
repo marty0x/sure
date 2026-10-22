@@ -93,6 +93,8 @@ class UsersController < ApplicationController
         redirect_to settings_appearance_path, notice: notice
       when "ai_prompts"
         redirect_to settings_ai_prompts_path, notice: notice
+      when "chats"
+        redirect_to chats_path, notice: notice
       else
         redirect_to settings_profile_path, notice: notice
       end
@@ -117,6 +119,7 @@ class UsersController < ApplicationController
         family_attrs.push(
           :personal_budgets,
           :household_budget_enabled,
+          :investment_contributions_as_spending,
           :moniker,
           :default_account_sharing,
           :basis_long_address,
@@ -149,8 +152,10 @@ class UsersController < ApplicationController
       personal_budgets_changed = family_attrs.key?(:personal_budgets)
       household_budget_enabled_changed = family_attrs.key?(:household_budget_enabled)
       basis_changed = %w[basis_long_address basis_long_token_addresses basis_lighter_address basis_borrow_repaid_usdc].any? { |key| family_attrs.key?(key) }
+      investment_contributions_as_spending_changed = family_attrs.key?(:investment_contributions_as_spending)
 
-      moniker_changed || sharing_changed || enabled_currencies_changed || personal_budgets_changed || household_budget_enabled_changed || basis_changed
+      moniker_changed || sharing_changed || enabled_currencies_changed || personal_budgets_changed || household_budget_enabled_changed || basis_changed ||
+        investment_contributions_as_spending_changed
     end
 
     def ensure_admin

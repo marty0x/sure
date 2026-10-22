@@ -32,15 +32,24 @@ class Money::CurrencyTest < ActiveSupport::TestCase
     assert_equal 0.01, @currency.step
   end
 
-  test "includes ethereum metadata" do
-    currency = Money::Currency.new(:eth)
+  test "ethereum uses wei native scale" do
+    eth = Money::Currency.new(:eth)
+    assert_equal "Ethereum", eth.name
+    assert_equal "ETH", eth.iso_code
+    assert_equal "Ξ", eth.symbol
+    assert_equal "Wei", eth.minor_unit
+    assert_equal 1000000000000000000, eth.minor_unit_conversion
+    assert_equal 8, eth.default_precision
+  end
 
-    assert_equal "ETH", currency.iso_code
-    assert_equal "Ethereum", currency.name
-    assert_equal "Ξ", currency.symbol
-    assert_equal "Wei", currency.minor_unit
-    assert_equal 1000000000000000000, currency.minor_unit_conversion
-    assert_equal 8, currency.default_precision
-    assert_equal 0.00000001, currency.step
+  test "ethereum step represents display precision" do
+    eth = Money::Currency.new(:eth)
+    assert_equal 0.00000001, eth.step
+  end
+
+  test "ethereum conversion formula: step = 10^-default_precision" do
+    eth = Money::Currency.new(:eth)
+    expected_step = 1.0 / (10 ** eth.default_precision)
+    assert_equal expected_step, eth.step
   end
 end
