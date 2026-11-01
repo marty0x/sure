@@ -1,6 +1,8 @@
 require "application_system_test_case"
 
 class ReportsTest < ApplicationSystemTestCase
+  include EntriesTestHelper
+
   setup do
     sign_in users(:family_admin)
     visit reports_path(period_type: :monthly)
@@ -72,6 +74,14 @@ class ReportsTest < ApplicationSystemTestCase
   end
 
   test "following a link while a section is held saves its new place first" do
+    # The breakdown table only renders when the current period has
+    # transactions; fixture transactions are dated relative to today, so on
+    # the 1st of a month the table (and its Amount sort link) can be empty.
+    create_transaction(account: accounts(:depository), category: categories(:food_and_drink), amount: 100, date: Date.current)
+    visit reports_path(period_type: :monthly)
+    find("a[aria-keyshortcuts='ArrowLeft']").hover
+    assert_selector "[role='tooltip']", text: "Previous period (←)"
+
     keys = all("section[data-section-key]").map { |section| section["data-section-key"] }
     moved = "transactions_breakdown"
     above = keys[keys.index(moved) - 1]

@@ -434,6 +434,12 @@ class BillsControllerTest < ActionDispatch::IntegrationTest
     travel_to occurrence.reload.effective_due_on - 2.days
     pay(occurrence)
 
+    # Sessions expire after 30 days of inactivity, and this test's first
+    # request lands over a month after sign-in (e.g. Dec 3 after a Nov 1
+    # sign-in), so the session would be gone and the index would redirect
+    # instead of assigning month_rows. Re-sign-in at the traveled date.
+    sign_in @user
+
     get bills_url
 
     assert_includes @controller.view_assigns["month_rows"].map(&:id), occurrence.id

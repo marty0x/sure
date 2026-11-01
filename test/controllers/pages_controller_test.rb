@@ -903,7 +903,11 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "dashboard spending trend header treats current month final day as in progress" do
-    selected_month = (0..24).map { |i| i.months.ago.beginning_of_month.to_date }
+    # Start from last month, not the current one: fixture transactions are
+    # dated relative to today, so a current-month selection would pull them
+    # into the previous-month comparison (e.g. on the 1st, when the previous
+    # month holds fixtures from a few days ago).
+    selected_month = (1..24).map { |i| i.months.ago.beginning_of_month.to_date }
       .find { |m| (m - 1.month).end_of_month.day > m.end_of_month.day }
     previous_month = (selected_month - 1.month).beginning_of_month
 
