@@ -21,13 +21,13 @@ class CashFlowGroupByTest < ApplicationSystemTestCase
 
     within("#cashflow-preview") { click_button "Account" }
 
-    chart.assert_selector "svg text", text: "Group By Checking"
+    chart.assert_selector "svg text", text: "Group By Checking", visible: :all
     assert_selector "#cashflow-preview button[aria-pressed='true']", text: "Account"
     assert_nil find("#cashflow-preview")["data-sankey-comparison"].presence, "only the category view is compared with the legacy chart"
 
     visit root_path(start_date: @month.iso8601, end_date: Date.current.iso8601)
     find("#cashflow-preview [data-preview-sankey-chart-target='chart']", match: :first)
-      .assert_selector "svg text", text: "Group By Checking"
+      .assert_selector "svg text", text: "Group By Checking", visible: :all
     assert_equal "account", @user.reload.cashflow_sankey_group_by
   end
 
