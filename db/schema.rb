@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -872,6 +872,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
     t.boolean "auto_sync_on_login", default: true, null: false
     t.string "basis_lighter_address"
     t.decimal "basis_borrow_repaid_usdc", precision: 19, scale: 6, default: "0.0", null: false
+    t.decimal "basis_borrow_outstanding_usdc", precision: 19, scale: 6, default: "0.0", null: false
     t.string "basis_long_address"
     t.text "basis_long_token_addresses"
     t.jsonb "bayes_settings", default: {}, null: false
@@ -906,6 +907,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
     t.string "vector_store_id"
     t.index ["bills_feed_token"], name: "index_families_on_bills_feed_token", unique: true
     t.check_constraint "basis_borrow_repaid_usdc >= 0::numeric", name: "families_basis_borrow_repaid_usdc_nonnegative"
+    t.check_constraint "basis_borrow_outstanding_usdc >= 0::numeric", name: "families_basis_borrow_outstanding_usdc_nonnegative"
     t.check_constraint "categorization_confidence_threshold >= 0::numeric AND categorization_confidence_threshold <= 1::numeric", name: "chk_families_categorization_confidence_threshold"
     t.check_constraint "categorization_provider::text = ANY (ARRAY['llm'::character varying::text, 'jev'::character varying::text])", name: "chk_families_categorization_provider"
     t.check_constraint "categorization_shadow_rate >= 0::numeric AND categorization_shadow_rate <= 1::numeric", name: "chk_families_categorization_shadow_rate"

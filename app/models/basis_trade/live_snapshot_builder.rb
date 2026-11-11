@@ -68,8 +68,12 @@ class BasisTrade::LiveSnapshotBuilder
     end
 
     def direct_borrow_outstanding_cents
-      borrowed_usdc = BasisTrade::CashLoanReader.new.borrowed_usdc(vault_address: @family.basis_long_address)
-      dollars_to_cents([ borrowed_usdc - @family.basis_borrow_repaid_usdc, BigDecimal("0") ].max)
+      # The outstanding is tracked manually: the Cash LendBorrowed ledger
+      # reads $0 for the configured safe (no LendBorrowed events exist for
+      # it), while the live LendGateway debt also includes card spending.
+      # The family sets this figure directly and adjusts it when borrowing
+      # or repaying.
+      dollars_to_cents(@family.basis_borrow_outstanding_usdc)
     end
 
     def aave_v4_supplied_balances

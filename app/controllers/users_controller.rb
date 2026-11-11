@@ -125,7 +125,7 @@ class UsersController < ApplicationController
           :basis_long_address,
           :basis_long_token_addresses,
           :basis_lighter_address,
-          :basis_borrow_repaid_usdc
+          :basis_borrow_outstanding_usdc
         ) # Needed for updating existing family
         family_attrs << { enabled_currencies: [] }
       end
@@ -152,7 +152,7 @@ class UsersController < ApplicationController
       enabled_currencies_changed = family_attrs.key?(:enabled_currencies)
       personal_budgets_changed = family_attrs.key?(:personal_budgets)
       household_budget_enabled_changed = family_attrs.key?(:household_budget_enabled)
-      basis_changed = %w[basis_long_address basis_long_token_addresses basis_lighter_address basis_borrow_repaid_usdc].any? { |key| family_attrs.key?(key) }
+      basis_changed = %w[basis_long_address basis_long_token_addresses basis_lighter_address basis_borrow_outstanding_usdc].any? { |key| family_attrs.key?(key) }
       investment_contributions_as_spending_changed = family_attrs.key?(:investment_contributions_as_spending)
 
       moniker_changed || sharing_changed || enabled_currencies_changed || personal_budgets_changed || household_budget_enabled_changed || basis_changed ||

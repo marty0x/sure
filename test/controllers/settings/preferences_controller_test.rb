@@ -64,6 +64,7 @@ class Settings::PreferencesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Ether.fi deposit address on Optimism"
     assert_includes response.body, "Perps wallet address"
+    assert_includes response.body, "Manual borrow outstanding (USDC)"
   end
 
   test "does not render basis source fields for non-admin users" do
@@ -73,6 +74,7 @@ class Settings::PreferencesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_includes response.body, "Ether.fi deposit address on Optimism"
     assert_not_includes response.body, "Perps wallet address"
+    assert_not_includes response.body, "Manual borrow outstanding (USDC)"
   end
 
   test "update toggles preview_features_enabled on" do

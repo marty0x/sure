@@ -274,6 +274,7 @@ class Family < ApplicationRecord
   validates :basis_long_address, :basis_lighter_address,
             format: { with: EVM_ADDRESS_FORMAT }, allow_blank: true
   validates :basis_borrow_repaid_usdc, numericality: { greater_than_or_equal_to: 0 }
+  validates :basis_borrow_outstanding_usdc, numericality: { greater_than_or_equal_to: 0 }
   validates :auto_generate_transaction_names, inclusion: { in: [ true, false ] }
   validates :investment_contributions_as_spending, inclusion: { in: [ true, false ] }
   validates :categories_locked, inclusion: { in: [ true, false ] }

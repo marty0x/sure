@@ -56,7 +56,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
           basis_long_address: "0x1111111111111111111111111111111111111111",
           basis_long_token_addresses: "0x2222222222222222222222222222222222222222\n0x3333333333333333333333333333333333333333",
           basis_lighter_address: "0x4444444444444444444444444444444444444444",
-          basis_borrow_repaid_usdc: "48.125"
+          basis_borrow_outstanding_usdc: "48.125"
         }
       }
     }
@@ -69,7 +69,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       "0x3333333333333333333333333333333333333333"
     ], family.basis_long_token_addresses_array
     assert_equal "0x4444444444444444444444444444444444444444", family.basis_lighter_address
-    assert_equal BigDecimal("48.125"), family.basis_borrow_repaid_usdc
+    assert_equal BigDecimal("48.125"), family.basis_borrow_outstanding_usdc
   end
 
   test "rejects an unknown family currency" do
@@ -141,7 +141,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         family_attributes: {
           id: @member.family.id,
           basis_long_address: "0x1111111111111111111111111111111111111111",
-          basis_borrow_repaid_usdc: "48.125"
+          basis_borrow_outstanding_usdc: "48.125"
         }
       }
     }
@@ -150,7 +150,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("users.reset.unauthorized"), flash[:alert]
     family = @member.family.reload
     assert_nil family.basis_long_address
-    assert_equal BigDecimal("0"), family.basis_borrow_repaid_usdc
+    assert_equal BigDecimal("0"), family.basis_borrow_outstanding_usdc
   end
 
   test "admin can reset family data" do

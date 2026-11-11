@@ -71,8 +71,8 @@ en:
         basis_lighter_address_label: Perps wallet address
         basis_lighter_address_placeholder: "0x..."
         basis_lighter_address_hint: Sure will sum the total account value of every Perps account/sub-account linked to this wallet.
-        basis_borrow_repaid_usdc_label: Amount repaid against Basis borrows (USDC)
-        basis_borrow_repaid_usdc_hint: Cumulative direct-Basis USDC repayments. This is subtracted from CashEventEmitter LendBorrowed events only; card spending is excluded.
+        basis_borrow_outstanding_usdc_label: Manual borrow outstanding (USDC)
+        basis_borrow_outstanding_usdc_hint: Direct ether.fi borrow currently outstanding. The Basis tab subtracts this from the account value; raise it when you borrow more, lower it when you repay. Card spending is the remainder of the LendGateway debt.
         preview:
           title: Enable preview features
           description: Opt in to in-progress features tagged preview or canary.
