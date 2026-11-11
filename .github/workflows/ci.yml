@@ -143,6 +143,12 @@ jobs:
             sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list.d/ubuntu.sources
           fi
           sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          # The runner's resolver cannot resolve Ubuntu archive hosts
+          # (azure.archive.ubuntu.com and archive.ubuntu.com both fail);
+          # point it at public resolvers instead.
+          sudo rm -f /etc/resolv.conf
+          printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\n" | sudo tee /etc/resolv.conf > /dev/null
+          getent hosts archive.ubuntu.com || echo "WARNING: archive.ubuntu.com still does not resolve"
           installed=false
           for attempt in 1 2 3; do
             if sudo apt-get update && sudo apt-get install --no-install-recommends -y curl libvips postgresql-client libpq-dev; then
@@ -236,6 +242,12 @@ jobs:
             sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list.d/ubuntu.sources
           fi
           sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          # The runner's resolver cannot resolve Ubuntu archive hosts
+          # (azure.archive.ubuntu.com and archive.ubuntu.com both fail);
+          # point it at public resolvers instead.
+          sudo rm -f /etc/resolv.conf
+          printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\n" | sudo tee /etc/resolv.conf > /dev/null
+          getent hosts archive.ubuntu.com || echo "WARNING: archive.ubuntu.com still does not resolve"
           installed=false
           for attempt in 1 2 3; do
             if sudo apt-get update && sudo apt-get install --no-install-recommends -y \
