@@ -33,7 +33,8 @@ on:
       - 'charts/**'
       - 'mobile/**'
   schedule:
-    - cron: '30 1 * * *'
+    # Weekly on this fork; upstream runs nightly.
+    - cron: '30 1 * * 0'
 
 env:
   REGISTRY: ghcr.io
