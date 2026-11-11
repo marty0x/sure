@@ -134,7 +134,28 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y curl libvips postgresql-client libpq-dev
+        run: |
+          # GitHub runners sometimes cannot resolve the Azure Ubuntu mirror
+          # (azure.archive.ubuntu.com); point apt at the canonical archive
+          # instead, and retry transient failures. Fork customization: keep
+          # across upstream syncs.
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          installed=false
+          for attempt in 1 2 3; do
+            if sudo apt-get update && sudo apt-get install --no-install-recommends -y curl libvips postgresql-client libpq-dev; then
+              installed=true
+              break
+            fi
+            echo "apt attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
+          if [ "$installed" = "false" ]; then
+            echo "apt-get failed after 3 attempts" >&2
+            exit 1
+          fi
 
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -207,9 +228,28 @@ jobs:
     steps:
       - name: Install packages
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y \
-            google-chrome-stable curl libvips postgresql-client libpq-dev
+          # GitHub runners sometimes cannot resolve the Azure Ubuntu mirror
+          # (azure.archive.ubuntu.com); point apt at the canonical archive
+          # instead, and retry transient failures. Fork customization: keep
+          # across upstream syncs.
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          installed=false
+          for attempt in 1 2 3; do
+            if sudo apt-get update && sudo apt-get install --no-install-recommends -y \
+                google-chrome-stable curl libvips postgresql-client libpq-dev; then
+              installed=true
+              break
+            fi
+            echo "apt attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
+          if [ "$installed" = "false" ]; then
+            echo "apt-get failed after 3 attempts" >&2
+            exit 1
+          fi
           # The runner image ships a chromedriver that lags google-chrome-stable.
           # Drop it so Selenium Manager resolves a driver matching the Chrome we
           # just installed, instead of the stale one in PATH.
