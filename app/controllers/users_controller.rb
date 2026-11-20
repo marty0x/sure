@@ -27,7 +27,10 @@ class UsersController < ApplicationController
       end
     else
       was_ai_enabled = @user.ai_enabled
-      if @user.update(user_params.except(:redirect_to, :delete_profile_image))
+      # Lives in the preferences JSON, written under a row lock so concurrent
+      # preference writes aren't lost, rather than through update below.
+      @user.update_show_balance_updates(user_params[:show_balance_updates]) if user_params.key?(:show_balance_updates)
+      if @user.update(user_params.except(:redirect_to, :delete_profile_image, :show_balance_updates))
         @user.profile_image.purge if should_purge_profile_image?
 
         # Add a special notice if AI was just enabled or disabled
@@ -120,6 +123,7 @@ class UsersController < ApplicationController
           :personal_budgets,
           :household_budget_enabled,
           :investment_contributions_as_spending,
+          :manual_reconciliation,
           :moniker,
           :default_account_sharing,
           :basis_long_address,
@@ -133,7 +137,7 @@ class UsersController < ApplicationController
       params.require(:user).permit(
         :first_name, :last_name, :email, :profile_image, :redirect_to, :delete_profile_image, :onboarded_at,
         :show_sidebar, :default_period, :default_account_order, :show_ai_sidebar, :ai_enabled, :theme, :set_onboarding_preferences_at, :set_onboarding_goals_at, :locale,
-        :rule_prompts_disabled,
+        :rule_prompts_disabled, :show_balance_updates,
         family_attributes: family_attrs,
         goals: []
       )
@@ -154,9 +158,10 @@ class UsersController < ApplicationController
       household_budget_enabled_changed = family_attrs.key?(:household_budget_enabled)
       basis_changed = %w[basis_long_address basis_long_token_addresses basis_lighter_address basis_borrow_outstanding_usdc].any? { |key| family_attrs.key?(key) }
       investment_contributions_as_spending_changed = family_attrs.key?(:investment_contributions_as_spending)
+      manual_reconciliation_changed = family_attrs.key?(:manual_reconciliation)
 
       moniker_changed || sharing_changed || enabled_currencies_changed || personal_budgets_changed || household_budget_enabled_changed || basis_changed ||
-        investment_contributions_as_spending_changed
+        investment_contributions_as_spending_changed || manual_reconciliation_changed
     end
 
     def ensure_admin
