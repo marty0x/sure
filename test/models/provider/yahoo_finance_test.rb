@@ -388,8 +388,12 @@ class Provider::YahooFinanceTest < ActiveSupport::TestCase
     date = Date.new(2026, 10, 22)
     @provider.stubs(:fetch_authenticated_chart).with("GELRUB=X", anything)
              .returns("chart" => { "error" => { "code" => "Not Found" } })
+    @provider.stubs(:fetch_authenticated_chart).with("GEL-RUB", anything)
+             .returns("chart" => { "error" => { "code" => "Not Found" } })
     # Live on that date: GEL per 100 RUB, with no currency.
     @provider.stubs(:fetch_authenticated_chart).with("RUBGEL=X", anything).returns(fx_chart(date, nil, 3.1481))
+    @provider.stubs(:fetch_authenticated_chart).with("RUB-GEL", anything)
+             .returns("chart" => { "error" => { "code" => "Not Found" } })
     DebugLogEntry.expects(:capture).with do |attributes|
       attributes[:category] == "exchange_rates" &&
         attributes[:metadata] == { symbol: "RUBGEL=X", expected_currency: "GEL", quote_currency: nil }
@@ -406,12 +410,33 @@ class Provider::YahooFinanceTest < ActiveSupport::TestCase
     @provider.stubs(:fetch_authenticated_chart).with("EURUSD=X", anything).returns(fx_chart(date, "USD", 1.12))
     @provider.stubs(:fetch_authenticated_chart).with("USDEUR=X", anything)
              .returns("chart" => { "error" => { "code" => "Not Found" } })
+    @provider.stubs(:fetch_authenticated_chart).with("USD-EUR", anything)
+             .returns("chart" => { "error" => { "code" => "Not Found" } })
 
     eur_usd = @provider.fetch_exchange_rates(from: "EUR", to: "USD", start_date: date, end_date: date)
     usd_eur = @provider.fetch_exchange_rates(from: "USD", to: "EUR", start_date: date, end_date: date)
 
     assert_in_delta 1.12, eur_usd.data.first.rate.to_f
     assert_in_delta 1 / 1.12, usd_eur.data.first.rate.to_f, 1e-9
+  end
+
+  test "fetch_exchange_rates falls back to Yahoo's crypto symbol format" do
+    @provider.stubs(:throttle_request)
+    date = Date.new(2026, 10, 22)
+    # Yahoo has no ETHUSD=X; crypto pairs are quoted as ETH-USD.
+    @provider.stubs(:fetch_authenticated_chart).with("ETHUSD=X", anything)
+             .returns("chart" => { "error" => { "code" => "Not Found" } })
+    @provider.stubs(:fetch_authenticated_chart).with("ETH-USD", anything).returns(fx_chart(date, "USD", 1620.35))
+    @provider.stubs(:fetch_authenticated_chart).with("USDETH=X", anything)
+             .returns("chart" => { "error" => { "code" => "Not Found" } })
+    @provider.stubs(:fetch_authenticated_chart).with("USD-ETH", anything)
+             .returns("chart" => { "error" => { "code" => "Not Found" } })
+
+    eth_usd = @provider.fetch_exchange_rates(from: "ETH", to: "USD", start_date: date, end_date: date)
+    usd_eth = @provider.fetch_exchange_rates(from: "USD", to: "ETH", start_date: date, end_date: date)
+
+    assert_in_delta 1620.35, eth_usd.data.first.rate.to_f
+    assert_in_delta 1 / 1620.35, usd_eth.data.first.rate.to_f, 1e-9
   end
 
   test "fetch_exchange_rates matches the quote currency regardless of case" do

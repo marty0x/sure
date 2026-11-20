@@ -818,30 +818,38 @@ class Provider::YahooFinance < Provider
       end
     end
 
+    # Yahoo quotes fiat pairs as EURUSD=X but crypto pairs as ETH-USD; the =X
+    # form for a crypto pair returns "Not Found", so try both spellings.
     def fetch_currency_pair_data(from, to, start_date, end_date)
-      symbol = "#{from}#{to}=X"
-      fetch_chart_data(symbol, start_date, end_date, currency: to) do |timestamp, close_rate|
-        Rate.new(
-          date: Time.at(timestamp).utc.to_date,
-          from: from,
-          to: to,
-          rate: close_rate.to_f
-        )
+      [ "#{from}#{to}=X", "#{from}-#{to}" ].each do |symbol|
+        rates = fetch_chart_data(symbol, start_date, end_date, currency: to) do |timestamp, close_rate|
+          Rate.new(
+            date: Time.at(timestamp).utc.to_date,
+            from: from,
+            to: to,
+            rate: close_rate.to_f
+          )
+        end
+        return rates if rates&.any?
       end
+
+      nil
     end
 
     def fetch_inverse_currency_pair_data(from, to, start_date, end_date)
-      symbol = "#{to}#{from}=X"
-      rates = fetch_chart_data(symbol, start_date, end_date, currency: from) do |timestamp, close_rate|
-        Rate.new(
-          date: Time.at(timestamp).utc.to_date,
-          from: from,
-          to: to,
-          rate: (BigDecimal("1") / BigDecimal(close_rate.to_s)).round(12)
-        )
+      [ "#{to}#{from}=X", "#{to}-#{from}" ].each do |symbol|
+        rates = fetch_chart_data(symbol, start_date, end_date, currency: from) do |timestamp, close_rate|
+          Rate.new(
+            date: Time.at(timestamp).utc.to_date,
+            from: from,
+            to: to,
+            rate: (BigDecimal("1") / BigDecimal(close_rate.to_s)).round(12)
+          )
+        end
+        return rates if rates&.any?
       end
 
-      rates
+      nil
     end
 
     # Makes a single authenticated GET to /v8/finance/chart/:symbol.
