@@ -248,6 +248,85 @@ jobs:
           echo "Unit test shards: ${RESULT}"
           [ "$RESULT" = "success" ]
 
+  # The rswag specs generate docs/api/openapi.yaml. Running them checks that
+  # every documented request still gets the documented response.
+  test_api_docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    env:
+      PLAID_CLIENT_ID: foo
+      PLAID_SECRET: bar
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432 # pipelock:ignore
+      REDIS_URL: redis://localhost:6379
+      RAILS_ENV: test
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Install packages
+        run: |
+          # GitHub runners sometimes cannot resolve the Azure Ubuntu mirror
+          # (azure.archive.ubuntu.com); point apt at the canonical archive
+          # instead, and retry transient failures. Fork customization: keep
+          # across upstream syncs.
+          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+            sudo sed -i 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|' /etc/apt/sources.list.d/ubuntu.sources
+          fi
+          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          # The runner's resolver cannot resolve Ubuntu archive hosts
+          # (azure.archive.ubuntu.com and archive.ubuntu.com both fail);
+          # point it at public resolvers instead.
+          sudo rm -f /etc/resolv.conf
+          printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\n" | sudo tee /etc/resolv.conf > /dev/null
+          getent hosts archive.ubuntu.com || echo "WARNING: archive.ubuntu.com still does not resolve"
+          installed=false
+          for attempt in 1 2 3; do
+            if sudo apt-get update && sudo apt-get install --no-install-recommends -y curl libvips postgresql-client libpq-dev; then
+              installed=true
+              break
+            fi
+            echo "apt attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
+          if [ "$installed" = "false" ]; then
+            echo "apt-get failed after 3 attempts" >&2
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@f9c4492e86def3e644ab32a0ef185eda5b0c20d0 # v1.342.0
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: DB setup
+        run: |
+          bin/rails db:create
+          bin/rails db:schema:load
+
+      - name: API documentation specs
+        run: bundle exec rspec
+
   # System tests run serially (they flake when parallel workers compete for
   # the runner's CPUs), so they are split by file across several runners.
   test_system_shard:

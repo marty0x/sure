@@ -16,6 +16,7 @@ class QifImport < Import
 
   def qif_date_format=(fmt)
     self.column_mappings = (column_mappings || {}).merge("qif_date_format" => fmt)
+    reset_parsed_transactions
   end
 
   # Parses the stored QIF content and creates Import::Row records.
@@ -100,6 +101,12 @@ class QifImport < Import
     @qif_account_type = raw_file_str.present? ? QifParser.account_type(raw_file_str) : nil
   end
 
+  # Account types in the file that are not standard QIF account types and are
+  # imported like a bank account (e.g. "Oth T").
+  def unknown_qif_account_types
+    raw_file_str.present? ? QifParser.unknown_account_types(raw_file_str) : []
+  end
+
   def qif_accounts
     @qif_accounts ||= raw_file_str.present? ? QifParser.parse_accounts(raw_file_str) : []
   end
@@ -169,6 +176,14 @@ class QifImport < Import
 
     def parsed_transactions_with_splits
       @parsed_transactions_with_splits ||= QifParser.parse(raw_file_str, date_format: qif_date_format)
+    end
+
+    # The parsed transactions depend on the date format; forget them when it changes.
+    def reset_parsed_transactions
+      remove_instance_variable(:@parsed_transactions_with_splits) if defined?(@parsed_transactions_with_splits)
+      remove_instance_variable(:@parsed_transaction_by_source_row_number) if defined?(@parsed_transaction_by_source_row_number)
+      remove_instance_variable(:@has_split_transactions) if defined?(@has_split_transactions)
+      remove_instance_variable(:@split_categories) if defined?(@split_categories)
     end
 
     def parsed_transaction_by_source_row_number
@@ -461,7 +476,7 @@ class QifImport < Import
           next unless target_account
 
           Account::OpeningBalanceManager.new(target_account).set_opening_balance(
-            balance: opening_balance[:amount],
+            balance: opening_balance_amount(target_account, opening_balance[:amount]),
             date:    opening_balance[:date]
           )
         end
@@ -473,12 +488,19 @@ class QifImport < Import
         end
       elsif (opening_balance = opening_balances.first)
         Account::OpeningBalanceManager.new(account).set_opening_balance(
-          balance: opening_balance[:amount],
+          balance: opening_balance_amount(account, opening_balance[:amount]),
           date:    opening_balance[:date]
         )
       else
         adjust_opening_anchor_if_needed!(account, earliest_row_date)
       end
+    end
+
+    # A QIF opening balance carries the same sign as the file's transactions
+    # (money owed on a credit card or loan is negative), while a liability's
+    # balance in Sure is the amount owed.
+    def opening_balance_amount(target_account, amount)
+      target_account.liability? ? -amount : amount
     end
 
     def adjust_opening_anchor_if_needed!(target_account, earliest)
